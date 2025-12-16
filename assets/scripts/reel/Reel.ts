@@ -20,6 +20,12 @@ export class Reel extends Component {
   @property([SpriteFrame])
   symbolSpriteFrames: SpriteFrame[] = []; // Kéo 5 hình symbols vào
 
+  @property(Node)
+  btnSpin: Node = null!; // Nút spin bình thường
+
+  @property(Node)
+  btnSpinDisable: Node = null!; // Nút spin bị disable
+
   private symbols: Node[] = [];
   private symbolHeight: number = 120; // Chiều cao mỗi symbol
   private symbolCount: number = 10; // Số symbols hiển thị
@@ -28,24 +34,13 @@ export class Reel extends Component {
   private spinSpeed: number = 0;
   private targetSpeed: number = 1000;
   private decelerationRate: number = 4000; // Tốc độ giảm tốc (px/s²)
+  private stopSpinTimer: number | null = null; // Timer để tự động dừng sau 3s
 
   onLoad(): void {
     this.initSymbols();
+    this.init();
   }
 
-  start() {
-    // Tự động quay sau 0.5 giây (để symbols đã khởi tạo xong)
-    this.scheduleOnce(() => {
-      console.log('Auto start spinning...');
-      this.startSpin();
-
-      // Tự động dừng sau 3 giây
-      this.scheduleOnce(() => {
-        console.log('Auto stop spinning...');
-        this.stopSpin();
-      }, 3);
-    }, 0.5);
-  }
 
   initSymbols() {
     for (let i = 0; i < this.symbolCount; i++) {
@@ -64,6 +59,10 @@ export class Reel extends Component {
 
     }
   }
+  init() {
+    this.btnSpin.active = true;
+    this.btnSpinDisable.active = false;
+  }
 
   /**
   * Bắt đầu quay reel
@@ -71,12 +70,37 @@ export class Reel extends Component {
   public startSpin() {
     this.isSpinning = true;
     this.spinSpeed = 0;  // Bắt đầu từ vận tốc 0
+
+    // Toggle buttons: Ẩn btn-spin, hiện btn-spin-disable
+    if (this.btnSpin) {
+      this.btnSpin.active = false;
+    }
+    if (this.btnSpinDisable) {
+      this.btnSpinDisable.active = true;
+    }
+
+    // Hủy timer cũ nếu có
+    if (this.stopSpinTimer !== null) {
+      clearTimeout(this.stopSpinTimer);
+    }
+
+    // Tự động dừng sau 3 giây
+    this.stopSpinTimer = setTimeout(() => {
+      this.stopSpin();
+      this.stopSpinTimer = null;
+    }, 6000) as unknown as number; // 3000ms = 3s
   }
 
   /**
    * Dừng quay với bounce effect
    */
   public stopSpin() {
+    // Hủy timer tự động nếu có
+    if (this.stopSpinTimer !== null) {
+      clearTimeout(this.stopSpinTimer);
+      this.stopSpinTimer = null;
+    }
+
     this.isSpinning = false;
     this.isStopping = true;
   }
@@ -143,6 +167,14 @@ export class Reel extends Component {
         this.isStopping = false;
         this.alignSymbols();  // Căn chỉnh vị trí
         console.log('Reel stopped!');
+
+        // Toggle buttons: Hiện btn-spin, ẩn btn-spin-disable
+        if (this.btnSpin) {
+          this.btnSpin.active = true;
+        }
+        if (this.btnSpinDisable) {
+          this.btnSpinDisable.active = false;
+        }
       }
     }
 
@@ -154,7 +186,7 @@ export class Reel extends Component {
         symbol.setPosition(pos.x, pos.y - this.spinSpeed * dt, pos.z);
 
         // Infinite scroll: khi symbol đi xuống dưới, đưa lên trên
-        if (pos.y < -this.symbolHeight) {
+        if (pos.y < -135) {
           symbol.setPosition(
             pos.x,
             pos.y + this.symbolHeight * this.symbolCount,
