@@ -20,11 +20,6 @@ export class Reel extends Component {
   @property([SpriteFrame])
   symbolSpriteFrames: SpriteFrame[] = []; // Kéo 5 hình symbols vào
 
-  @property(Node)
-  btnSpin: Node = null!; // Nút spin bình thường
-
-  @property(Node)
-  btnSpinDisable: Node = null!; // Nút spin bị disable
 
   private symbols: Node[] = [];
   private symbolHeight: number = 120; // Chiều cao mỗi symbol
@@ -38,7 +33,6 @@ export class Reel extends Component {
 
   onLoad(): void {
     this.initSymbols();
-    this.init();
   }
 
 
@@ -59,10 +53,7 @@ export class Reel extends Component {
 
     }
   }
-  init() {
-    this.btnSpin.active = true;
-    this.btnSpinDisable.active = false;
-  }
+
 
   /**
   * Bắt đầu quay reel
@@ -72,23 +63,12 @@ export class Reel extends Component {
     this.spinSpeed = 0;  // Bắt đầu từ vận tốc 0
 
     // Toggle buttons: Ẩn btn-spin, hiện btn-spin-disable
-    if (this.btnSpin) {
-      this.btnSpin.active = false;
-    }
-    if (this.btnSpinDisable) {
-      this.btnSpinDisable.active = true;
-    }
+
 
     // Hủy timer cũ nếu có
     if (this.stopSpinTimer !== null) {
       clearTimeout(this.stopSpinTimer);
     }
-
-    // Tự động dừng sau 3 giây
-    this.stopSpinTimer = setTimeout(() => {
-      this.stopSpin();
-      this.stopSpinTimer = null;
-    }, 6000) as unknown as number; // 3000ms = 3s
   }
 
   /**
@@ -96,10 +76,6 @@ export class Reel extends Component {
    */
   public stopSpin() {
     // Hủy timer tự động nếu có
-    if (this.stopSpinTimer !== null) {
-      clearTimeout(this.stopSpinTimer);
-      this.stopSpinTimer = null;
-    }
 
     this.isSpinning = false;
     this.isStopping = true;
@@ -169,24 +145,30 @@ export class Reel extends Component {
         console.log('Reel stopped!');
 
         // Toggle buttons: Hiện btn-spin, ẩn btn-spin-disable
-        if (this.btnSpin) {
-          this.btnSpin.active = true;
-        }
-        if (this.btnSpinDisable) {
-          this.btnSpinDisable.active = false;
-        }
+
       }
     }
 
     // Di chuyển symbols xuống
     if (this.spinSpeed > 0) {
+      // Tính opacity dựa trên tốc độ (0 = trong suốt, 1 = không mờ)
+      const blurAmount = Math.min(this.spinSpeed / this.targetSpeed, 1); // 0-1
+      const opacity = 255 * (1 - blurAmount * 0.25); // Giảm tối đa 25% opacity khi quay nhanh nhất (vẫn nhìn thấy rõ)
+
       this.symbols.forEach(symbol => {
         const pos = symbol.position;
-        console.log("symbol", symbol);
         symbol.setPosition(pos.x, pos.y - this.spinSpeed * dt, pos.z);
 
+        // Apply blur effect bằng cách giảm opacity
+        const symbolComponent = symbol.getComponent(Symbol)!;
+        symbolComponent.setOpacity(opacity);
+
+        // Apply motion blur trail (ghost copies)
+        symbolComponent.createMotionBlur(blurAmount);
+
         // Infinite scroll: khi symbol đi xuống dưới, đưa lên trên
-        if (pos.y < -135) {
+        // CHỈ wrap khi ĐANG quay, KHÔNG wrap khi đang dừng (isStopping)
+        if (pos.y < -135 && !this.isStopping) {
           symbol.setPosition(
             pos.x,
             pos.y + this.symbolHeight * this.symbolCount,
@@ -195,10 +177,29 @@ export class Reel extends Component {
 
           // Đổi hình ảnh random khi recycle
           const randomId = Math.floor(Math.random() * this.symbolSpriteFrames.length);
-          const symbolComponent = symbol.getComponent(Symbol)!;
           symbolComponent.setSymbol(randomId, this.symbolSpriteFrames[randomId]);
         }
       });
+    } else {
+      // Khi không quay, đảm bảo opacity = 255 (hoàn toàn rõ) và xóa motion blur mượt mà
+      this.symbols.forEach(symbol => {
+        const symbolComponent = symbol.getComponent(Symbol)!;
+        symbolComponent.setOpacity(255);
+        symbolComponent.removeMotionBlur(true); // smooth = true → fade out mượt khi STOP
+      });
     }
+  }
+
+
+  public getVisibleSymbols(): number[] {
+    // Giả sử symbols[1], symbols[2], symbols[3] là 3 cái giữa
+    const result: number[] = [];
+    for (let i = 1; i <= 3; i++) {
+      const symbol = this.symbols[i]?.getComponent(Symbol);
+      if (symbol) {
+        result.push(symbol.getSymbolId());
+      }
+    }
+    return result;
   }
 }
