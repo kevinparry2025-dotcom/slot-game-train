@@ -728,3 +728,4 @@ Apply custom "Shine" shader (UV sliding effect) chỉ khi win.
 > **Ghi chú cuối cùng**: Slot game development là sự kết hợp giữa **Math**, **Animation**, và **State Management**. Hãy từng bước xây dựng từ core mechanic đơn giản, sau đó thêm polish và optimization.
 
 **Good luck! 🍀**
+
