@@ -52,7 +52,7 @@ export class LoadingManager extends Component {
 
                 this.scheduleOnce(() => {
                     console.log('Loading complete! Going to Lobby...');
-                    this.loadSceneWithFade('GameScene');
+                    this.loadSceneWithFade('LobbyScene');
                 }, 0.5);
             }
         }, 200);
