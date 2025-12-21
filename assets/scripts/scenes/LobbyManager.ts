@@ -1,11 +1,9 @@
 import { _decorator, Component, Button, director, Sprite, tween, UIOpacity } from 'cc';
 const { ccclass, property } = _decorator;
+import { GameType } from '../utils/Game';
+import { AssetLoader } from '../core/AssetLoader';
+import { GameManager } from '../core/GameManager';
 
-export enum GameType {
-    FRUITS = 'Fruits',
-    PHARAOH = 'Pharaoh',
-    DRAGON = 'Dragon'
-}
 @ccclass('LobbyManager')
 export class LobbyManager extends Component {
 
@@ -55,9 +53,19 @@ export class LobbyManager extends Component {
         }
     }
 
-    private onGameSelected(gameType: GameType) {
-        console.log(`Selected game: ${gameType}`);
+    private async onGameSelected(gameType: GameType) {
+        console.log(`🎮 Loading ${gameType} game...`);
+        // Set current game
+        GameManager.instance.setCurrentGame(gameType);
+        // Set current game
+        GameManager.instance.setCurrentGame(gameType);
+        // Load bundle
+        const bundleName = `game_${gameType}`;
 
+        if (!AssetLoader.instance.isBundleLoaded(bundleName)) {
+            console.log(`Loading bundle: ${bundleName}...`);
+            await AssetLoader.instance.loadBundle(bundleName);
+        }
 
         this.scheduleOnce(() => {
             console.log('Loading complete! Going to Lobby...');

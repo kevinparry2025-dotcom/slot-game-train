@@ -1,0 +1,12 @@
+{
+  "ver": "1.2.0",
+  "importer": "directory",
+  "imported": true,
+  "uuid": "7d9f2e01-a8bc-48ef-a3fc-00881a2aa2d6",
+  "files": [],
+  "subMetas": {},
+  "userData": {
+    "bundleName": "game_fruits",
+    "isBundle": true
+  }
+}

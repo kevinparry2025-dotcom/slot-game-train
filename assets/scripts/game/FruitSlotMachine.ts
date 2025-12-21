@@ -1,3 +1,5 @@
+
+
 import { _decorator, Component, Node } from 'cc';
 import { ReelGroup } from '../reel/ReelGroup';
 const { ccclass, property } = _decorator;
@@ -10,8 +12,8 @@ enum SlotState {
     RESULT = 'RESULT'               // Hiển thị kết quả win/lose
 }
 
-@ccclass('SlotMachine')
-export class SlotMachine extends Component {
+@ccclass('FruitSlotMachine')
+export class FruitSlotMachine extends Component {
     @property(Node)
     btnSpin: Node = null!; // Nút spin bình thường
 
@@ -29,7 +31,6 @@ export class SlotMachine extends Component {
         this.init();
     }
     init() {
-        console.log("wtf")
         this.btnSpin.active = true;
         this.btnSpinDisable.active = false;
     }
