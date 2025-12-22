@@ -2,7 +2,7 @@
   "ver": "1.0.27",
   "importer": "image",
   "imported": true,
-  "uuid": "26aaa64a-527b-4963-8cea-6698c7e842b7",
+  "uuid": "46695a77-dd15-47fd-93cc-c1d72aa3fc2b",
   "files": [
     ".json",
     ".png"
@@ -10,14 +10,14 @@
   "subMetas": {
     "6c48a": {
       "importer": "texture",
-      "uuid": "26aaa64a-527b-4963-8cea-6698c7e842b7@6c48a",
-      "displayName": "bg-fruits",
+      "uuid": "46695a77-dd15-47fd-93cc-c1d72aa3fc2b@6c48a",
+      "displayName": "bg-fruits-2",
       "id": "6c48a",
       "name": "texture",
       "userData": {
         "wrapModeS": "clamp-to-edge",
         "wrapModeT": "clamp-to-edge",
-        "imageUuidOrDatabaseUri": "26aaa64a-527b-4963-8cea-6698c7e842b7",
+        "imageUuidOrDatabaseUri": "46695a77-dd15-47fd-93cc-c1d72aa3fc2b",
         "isUuid": true,
         "visible": false,
         "minfilter": "linear",
@@ -34,8 +34,8 @@
     },
     "f9941": {
       "importer": "sprite-frame",
-      "uuid": "26aaa64a-527b-4963-8cea-6698c7e842b7@f9941",
-      "displayName": "bg-fruits",
+      "uuid": "46695a77-dd15-47fd-93cc-c1d72aa3fc2b@f9941",
+      "displayName": "bg-fruits-2",
       "id": "f9941",
       "name": "spriteFrame",
       "userData": {
@@ -113,7 +113,7 @@
           ]
         },
         "isUuid": true,
-        "imageUuidOrDatabaseUri": "26aaa64a-527b-4963-8cea-6698c7e842b7@6c48a",
+        "imageUuidOrDatabaseUri": "46695a77-dd15-47fd-93cc-c1d72aa3fc2b@6c48a",
         "atlasUuid": "",
         "trimType": "auto"
       },
@@ -127,8 +127,8 @@
   },
   "userData": {
     "type": "sprite-frame",
-    "hasAlpha": true,
+    "hasAlpha": false,
     "fixAlphaTransparencyArtifacts": false,
-    "redirect": "26aaa64a-527b-4963-8cea-6698c7e842b7@6c48a"
+    "redirect": "46695a77-dd15-47fd-93cc-c1d72aa3fc2b@6c48a"
   }
 }
