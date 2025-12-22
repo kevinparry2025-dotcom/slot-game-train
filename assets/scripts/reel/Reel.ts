@@ -85,8 +85,6 @@ export class Reel extends Component {
     this.isSpinning = true;
     this.spinSpeed = 0;  // Bắt đầu từ vận tốc 0
 
-    // Toggle buttons: Ẩn btn-spin, hiện btn-spin-disable
-
 
     // Hủy timer cũ nếu có
     if (this.stopSpinTimer !== null) {
