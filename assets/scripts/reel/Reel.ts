@@ -9,6 +9,7 @@ import {
   SpriteFrame,
 } from "cc";
 import { Symbol } from "./Symbol";
+import { ReelConfig, FruitsReelConfig } from "./ReelConfig";
 const { ccclass, property } = _decorator;
 
 @ccclass("Reel")
@@ -22,16 +23,38 @@ export class Reel extends Component {
 
 
   private symbols: Node[] = [];
+  private config: ReelConfig = FruitsReelConfig; // Cấu hình mặc định
   private symbolHeight: number = 120; // Chiều cao mỗi symbol
   private symbolCount: number = 10; // Số symbols hiển thị
   private isSpinning: boolean = false;
   private isStopping: boolean = false;
   private spinSpeed: number = 0;
   private targetSpeed: number = 1000;
+  private accelerationRate: number = 1000; // Tốc độ tăng tốc (px/s²)
   private decelerationRate: number = 4000; // Tốc độ giảm tốc (px/s²)
   private stopSpinTimer: number | null = null; // Timer để tự động dừng sau 3s
 
-  onLoad(): void {
+
+  /**
+   * Khởi tạo Reel với configuration
+   */
+  public init(config?: ReelConfig) {
+    if (config) {
+      this.config = config;
+
+      // Áp dụng config vào các thuộc tính
+      this.symbolHeight = config.symbolHeight;
+      this.symbolCount = config.totalSymbolCount;
+      this.targetSpeed = config.targetSpeed;
+      this.accelerationRate = config.accelerationRate;
+      this.decelerationRate = config.decelerationRate;
+
+      // Nếu config có symbolSpriteFrames thì override
+      if (config.symbolSpriteFrames && config.symbolSpriteFrames.length > 0) {
+        this.symbolSpriteFrames = config.symbolSpriteFrames;
+      }
+    }
+
     this.initSymbols();
   }
 
@@ -129,7 +152,7 @@ export class Reel extends Component {
   update(dt: number) {
     // Tăng tốc khi đang quay
     if (this.isSpinning) {
-      this.spinSpeed += 1000 * dt;  // Tăng tốc 1000 px/s²
+      this.spinSpeed += this.accelerationRate * dt;  // Sử dụng accelerationRate từ config
       if (this.spinSpeed > this.targetSpeed) {
         this.spinSpeed = this.targetSpeed;
       }

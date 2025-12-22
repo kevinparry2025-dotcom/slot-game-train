@@ -5,5 +5,8 @@
   "uuid": "388afefb-d3d0-4cdb-a254-349347fe53ea",
   "files": [],
   "subMetas": {},
-  "userData": {}
+  "userData": {
+    "isBundle": true,
+    "bundleName": "game_pharaoh"
+  }
 }

@@ -5,5 +5,8 @@
   "uuid": "71f2e791-9d49-434f-94e4-bc8b0373c3fd",
   "files": [],
   "subMetas": {},
-  "userData": {}
+  "userData": {
+    "isBundle": true,
+    "bundleName": "game_dragon"
+  }
 }

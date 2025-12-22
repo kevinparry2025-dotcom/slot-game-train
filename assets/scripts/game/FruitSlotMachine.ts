@@ -2,6 +2,7 @@
 
 import { _decorator, Component, Node } from 'cc';
 import { ReelGroup } from '../reel/ReelGroup';
+import { FruitsReelConfig } from '../reel/ReelConfig';
 const { ccclass, property } = _decorator;
 
 enum SlotState {
@@ -31,6 +32,9 @@ export class FruitSlotMachine extends Component {
         this.init();
     }
     init() {
+        // Khởi tạo reelGroup với config của game Fruits
+        this.reelGroup.init(FruitsReelConfig);
+
         this.btnSpin.active = true;
         this.btnSpinDisable.active = false;
     }
@@ -69,7 +73,7 @@ export class FruitSlotMachine extends Component {
     }
 
     private setState(newState: SlotState) {
-        console.log(`🔄 State: ${this.currentState} → ${newState}`);
+        console.log(`🍇 Fruits State: ${this.currentState} → ${newState}`);
         this.currentState = newState;
 
         // TODO: Update UI theo state
@@ -96,7 +100,7 @@ export class FruitSlotMachine extends Component {
         this.setState(SlotState.RESULT);
 
         const result = this.reelGroup.getResult();
-        console.log('🎰 Result:', result);
+        console.log('🍇 Fruits Result:', result);
 
         // TODO: Check win logic
 
