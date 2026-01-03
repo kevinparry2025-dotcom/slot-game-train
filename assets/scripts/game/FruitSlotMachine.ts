@@ -26,6 +26,7 @@ export class FruitSlotMachine extends Component {
     reelGroup: ReelGroup = null!;
 
     private currentState: SlotState = SlotState.IDLE;
+    private targetResult: number[] = []; // Kết quả mục tiêu từ Result Matrix
 
     start() {
         this.setState(SlotState.IDLE);
@@ -58,6 +59,10 @@ export class FruitSlotMachine extends Component {
      * Bắt đầu quay
      */
     private startSpin() {
+        // RESULT MATRIX: Generate kết quả NGAY TỪ ĐẦU (Frontend)
+        this.targetResult = this.generateRandomResult();
+        console.log('🎯 Fruits Result Matrix generated:', this.targetResult);
+
         this.setState(SlotState.SPINNING_ACCEL);
         this.reelGroup.startAllReels();
 
@@ -72,6 +77,23 @@ export class FruitSlotMachine extends Component {
         }, 1);
     }
 
+    /**
+     * Tạo kết quả ngẫu nhiên (Frontend)
+     * Ví dụ: [1, 3, 4, 2, 0] cho 5 reels
+     */
+    private generateRandomResult(): number[] {
+        const config = FruitsReelConfig;
+        const symbolCount = 5; // Số loại symbols (0-4)
+        const result: number[] = [];
+
+        for (let i = 0; i < config.reelCount; i++) {
+            const randomSymbolId = Math.floor(Math.random() * symbolCount);
+            result.push(randomSymbolId);
+        }
+
+        return result;
+    }
+
     private setState(newState: SlotState) {
         console.log(`🍇 Fruits State: ${this.currentState} → ${newState}`);
         this.currentState = newState;
@@ -84,7 +106,10 @@ export class FruitSlotMachine extends Component {
      */
     private stopSpin() {
         this.setState(SlotState.STOPPING);
-        this.reelGroup.stopReelsSequentially();
+
+        // RESULT MATRIX: Truyền kết quả mục tiêu cho reels
+        this.reelGroup.stopWithResult(this.targetResult);
+
         this.btnSpin.active = true;
         this.btnSpinDisable.active = false;
         // Dừng hết 3 reels mất: 0.3s * 3 + 0.5s (animation) ≈ 1.5s

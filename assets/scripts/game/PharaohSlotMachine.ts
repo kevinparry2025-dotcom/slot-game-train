@@ -25,6 +25,7 @@ export class PharaohSlotMachine extends Component {
     reelGroup: ReelGroup = null!;
 
     private currentState: SlotState = SlotState.IDLE;
+    private targetResult: number[] = []; // Kết quả mục tiêu từ Result Matrix
 
     start() {
         this.setState(SlotState.IDLE);
@@ -59,6 +60,10 @@ export class PharaohSlotMachine extends Component {
      * Bắt đầu quay
      */
     private startSpin() {
+        // RESULT MATRIX: Generate kết quả NGAY TỪ ĐẦU (Frontend)
+        this.targetResult = this.generateRandomResult();
+        console.log('🎯 Pharaoh Result Matrix generated:', this.targetResult);
+
         this.setState(SlotState.SPINNING_ACCEL);
         this.reelGroup.startAllReels();
 
@@ -73,6 +78,23 @@ export class PharaohSlotMachine extends Component {
         }, 1);
     }
 
+    /**
+     * Tạo kết quả ngẫu nhiên (Frontend)
+     * Ví dụ: [1, 3, 4, 2, 0] cho 5 reels
+     */
+    private generateRandomResult(): number[] {
+        const config = PharaohReelConfig;
+        const symbolCount = 5; // Số loại symbols (0-4)
+        const result: number[] = [];
+
+        for (let i = 0; i < config.reelCount; i++) {
+            const randomSymbolId = Math.floor(Math.random() * symbolCount);
+            result.push(randomSymbolId);
+        }
+
+        return result;
+    }
+
     private setState(newState: SlotState) {
         console.log(`� Pharaoh State: ${this.currentState} → ${newState}`);
         this.currentState = newState;
@@ -85,7 +107,10 @@ export class PharaohSlotMachine extends Component {
      */
     private stopSpin() {
         this.setState(SlotState.STOPPING);
-        this.reelGroup.stopReelsSequentially();
+
+        // RESULT MATRIX: Truyền kết quả mục tiêu cho reels
+        this.reelGroup.stopWithResult(this.targetResult);
+
         // Dừng hết 3 reels mất: 0.3s * 3 + 0.5s (animation) ≈ 1.5s
         this.scheduleOnce(() => {
             this.showResult();
@@ -99,14 +124,15 @@ export class PharaohSlotMachine extends Component {
         this.setState(SlotState.RESULT);
         this.btnSpin.active = true;
         this.btnSpinDisable.active = false;
-        const result = this.reelGroup.getResult();
-        console.log('👑 Pharaoh Result:', result);
 
         // TODO: Check win logic
 
         // Sau 1s quay về IDLE để cho spin tiếp
         this.scheduleOnce(() => {
             this.setState(SlotState.IDLE);
+
+            const result = this.reelGroup.getResult();
+            console.log('👑 Pharaoh Result (at IDLE):', result);
         }, 1);
     }
 }

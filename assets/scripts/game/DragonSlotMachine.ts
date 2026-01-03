@@ -24,6 +24,7 @@ export class DragonSlotMachine extends Component {
     reelGroup: ReelGroup = null!;
 
     private currentState: SlotState = SlotState.IDLE;
+    private targetResult: number[] = []; // Kết quả mục tiêu từ Result Matrix
 
     start() {
         this.setState(SlotState.IDLE);
@@ -56,6 +57,10 @@ export class DragonSlotMachine extends Component {
      * Bắt đầu quay
      */
     private startSpin() {
+        // RESULT MATRIX: Generate kết quả NGAY Từ ĐẦU (Frontend)
+        this.targetResult = this.generateRandomResult();
+        console.log('🎯 Dragon Result Matrix generated:', this.targetResult);
+
         this.setState(SlotState.SPINNING_ACCEL);
         this.reelGroup.startAllReels();
 
@@ -70,6 +75,23 @@ export class DragonSlotMachine extends Component {
         }, 1);
     }
 
+    /**
+     * Tạo kết quả ngẫu nhiên (Frontend)
+     * Ví dụ: [1, 3, 4, 2, 0] cho 5 reels
+     */
+    private generateRandomResult(): number[] {
+        const config = DragonReelConfig;
+        const symbolCount = 5; // Số loại symbols (0-4)
+        const result: number[] = [];
+
+        for (let i = 0; i < config.reelCount; i++) {
+            const randomSymbolId = Math.floor(Math.random() * symbolCount);
+            result.push(randomSymbolId);
+        }
+
+        return result;
+    }
+
     private setState(newState: SlotState) {
         console.log(`🐉 Dragon State: ${this.currentState} → ${newState}`);
         this.currentState = newState;
@@ -82,7 +104,10 @@ export class DragonSlotMachine extends Component {
      */
     private stopSpin() {
         this.setState(SlotState.STOPPING);
-        this.reelGroup.stopReelsSequentially();
+
+        // RESULT MATRIX: Truyền kết quả mục tiêu cho reels
+        this.reelGroup.stopWithResult(this.targetResult);
+
         this.btnSpin.active = true;
         this.btnSpinDisable.active = false;
         // Dừng hết reels mất: stopDelay * reelCount + animation time

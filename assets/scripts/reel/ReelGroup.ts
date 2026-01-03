@@ -42,6 +42,25 @@ export class ReelGroup extends Component {
         this.stopNextReel();
     }
 
+    /**
+     * Dừng reels tuần tự với kết quả mục tiêu từ Result Matrix
+     * @param targetResults - Mảng symbol IDs mục tiêu, vd: [1, 3, 4]
+     */
+    public stopWithResult(targetResults: number[]) {
+        console.log('🎯 Result Matrix received:', targetResults);
+
+        // Gán target cho từng reel
+        targetResults.forEach((symbolId, index) => {
+            if (index < this.reels.length) {
+                this.reels[index].setTargetSymbol(symbolId);
+            }
+        });
+
+        // Bắt đầu dừng tuần tự
+        this.stopReelsSequentially();
+    }
+
+
     private stopNextReel() {
         if (this.currentReelIndex >= this.reels.length) {
             // TODO: Trigger check win logic

@@ -33,6 +33,7 @@ export class Reel extends Component {
   private accelerationRate: number = 1000; // Tốc độ tăng tốc (px/s²)
   private decelerationRate: number = 4000; // Tốc độ giảm tốc (px/s²)
   private stopSpinTimer: number | null = null; // Timer để tự động dừng sau 3s
+  private targetSymbolId: number | null = null; // Symbol ID mục tiêu để dừng lại
 
 
   /**
@@ -93,134 +94,239 @@ export class Reel extends Component {
   }
 
   /**
-   * Dừng quay với bounce effect
+   * Set symbol ID mục tiêu (từ Result Matrix)
+   * Target symbol sẽ tự nhiên xuất hiện qua infinite scroll
    */
-  public stopSpin() {
-    // Hủy timer tự động nếu có
-
-    this.isSpinning = false;
-    this.isStopping = true;
+  public setTargetSymbol(symbolId: number) {
+    this.targetSymbolId = symbolId;
+    console.log(`🎯 Reel target set to symbol ID: ${symbolId}`);
   }
 
   /**
-   * Căn chỉnh symbols về vị trí chuẩn (grid-aligned)
+   * Dừng quay tại symbol cụ thể (Result Matrix)
    */
+  public stopAtSymbol(symbolId: number) {
+    this.setTargetSymbol(symbolId);
+    this.stopSpin();
+  }
+
+
   /**
-   * Căn chỉnh symbols về vị trí grid chuẩn khi reel dừng
-   * 
-   * Ý TƯỞNG:
-   * - Mỗi symbol phải dừng tại vị trí chia hết cho 120 (grid)
-   * - Vd: 0, 120, 240, 360, -120, -240, v.v.
-   * - Tìm grid GẦN NHẤT với vị trí hiện tại
-   * 
-   * CÔNG THỨC:
-   * nearestGrid = Math.round(currentY / 120) * 120
-   * 
-   * VÍ DỤ:
-   * - Nếu symbol ở Y=739.84:
-   *   739.84 / 120 = 6.165 → round = 6 → 6 * 120 = 720 ✅
-   * 
-   * - Nếu symbol ở Y=-100.15:
-   *   -100.15 / 120 = -0.835 → round = -1 → -1 * 120 = -120 ✅
+   * Dừng quay với bounce effect
+   */
+  public stopSpin() {
+    this.isStopping = true;
+    // Không set isSpinning = false ngay, để logic update xử lý việc "bắt" target
+  }
+
+  /**
+   * Căn chỉnh symbols về grid gần nhất (small snap only)
+   * Mỗi symbol chỉ di chuyển tối đa ±60px
    */
   private alignSymbols() {
+    // console.log(`🎯 Aligning symbols to nearest grid...`);
+
     this.symbols.forEach((symbol, index) => {
-      // Bước 1: Lấy vị trí hiện tại (số lẻ, vd: 739.8438...)
       const currentY = symbol.position.y;
-
-      // Bước 2: Tính vị trí grid gần nhất
-      // - Chia cho 120: Chuyển thành "số ô grid" (vd: 6.165)
-      // - Math.round: Làm tròn về số nguyên gần nhất (vd: 6)
-      // - Nhân 120: Chuyển lại thành pixel (vd: 720)
       const nearestGridY = Math.round(currentY / this.symbolHeight) * this.symbolHeight;
+      // const distance = Math.abs(nearestGridY - currentY);
 
-      // Debug: Xem symbol di chuyển từ đâu đến đâu
-      console.log(`Symbol #${index}: ${currentY.toFixed(2)} → ${nearestGridY}`);
+      // console.log(`Symbol #${index}: Y=${currentY.toFixed(2)} → ${nearestGridY} (Δ=${distance.toFixed(2)}px)`);
 
-      // Bước 3: Di chuyển symbol đến vị trí grid (smooth animation 0.2s)
       tween(symbol)
         .to(0.2, { position: new Vec3(0, nearestGridY, 0) })
         .start();
     });
+
+    // Reset target sau khi đã dừng
+    this.targetSymbolId = null;
   }
+
+  /**
+   * Tìm Node của target symbol trong reel
+   */
+  private findTargetSymbol(): Node | null {
+    if (this.targetSymbolId === null) return null;
+
+    for (const symbolNode of this.symbols) {
+      const symbolComponent = symbolNode.getComponent(Symbol)!;
+      if (symbolComponent.getSymbolId() === this.targetSymbolId) {
+        return symbolNode;
+      }
+    }
+
+    return null;
+  }
+
+  /**
+   * Kiểm tra xem target symbol đã được đặt vào reel chưa
+   */
+  private isTargetSymbolPlaced(): boolean {
+    return this.findTargetSymbol() !== null;
+  }
+
 
   /**
    * Update mỗi frame
    */
   update(dt: number) {
-    // Tăng tốc khi đang quay
-    if (this.isSpinning) {
-      this.spinSpeed += this.accelerationRate * dt;  // Sử dụng accelerationRate từ config
+    if (!this.isSpinning) return;
+
+    // --- PHASE 1: ACCELERATION & CONSTANT SPEED ---
+    if (!this.isStopping) {
+      this.spinSpeed += this.accelerationRate * dt;
       if (this.spinSpeed > this.targetSpeed) {
         this.spinSpeed = this.targetSpeed;
       }
     }
+    // --- PHASE 2: SEEKING TARGET & BRAKING ---
+    else {
+      // Logic "Smart Braking":
+      // Chỉ bắt đầu giảm tốc khi Target Symbol đã xuất hiện và ở vị trí thích hợp để dừng đúng lúc.
 
-    // Giảm tốc khi đang dừng
-    if (this.isStopping) {
-      this.spinSpeed -= this.decelerationRate * dt;
-      if (this.spinSpeed <= 0) {
-        this.spinSpeed = 0;
-        this.isStopping = false;
-        this.alignSymbols();  // Căn chỉnh vị trí
-        console.log('Reel stopped!');
+      let readyToBrake = false;
 
-        // Toggle buttons: Hiện btn-spin, ẩn btn-spin-disable
+      if (this.targetSymbolId !== null) {
+        const targetNode = this.findTargetSymbol();
 
+        if (targetNode) {
+          const targetY = targetNode.position.y;
+          // Tính toán vị trí Y của target:
+          // Target đang từ trên đi xuống.
+          // Chúng ta muốn dừng tại Y=0.
+          // Cần một quãng đường để giảm tốc từ targetSpeed về 0.
+          // Công thức: v² - u² = 2as  =>  s = v² / (2a)
+          // s = quãng đường phanh cần thiết.
+          // v = vận tốc hiện tại (spinSpeed).
+          // a = gia tốc hãm (decelerationRate).
+
+          const brakingDistance = (this.spinSpeed * this.spinSpeed) / (2 * this.decelerationRate);
+
+          // Strict Window:
+          // Chúng ta muốn dừng xoay quanh Y=0.
+          // Do tích phân Euler (dt) có thể gây sai số, chúng ta nên aim dừng ở [0, -30] (hơi trôi qua 1 chút)
+          // thay vì [30, 0] (dừng non).
+          // Stopping Point = currentY - brakingDistance
+          // Want: -30 <= Stopping Point <= 10
+          // => -30 <= currentY - brakingDistance <= 10
+          // => brakingDistance - 30 <= currentY <= brakingDistance + 10
+
+          const lowerBound = brakingDistance - 30; // Chấp nhận dừng quá vạch 30px
+          const upperBound = brakingDistance + 10; // Chấp nhận dừng non 10px
+
+          if (targetY >= lowerBound && targetY <= upperBound) {
+            readyToBrake = true;
+            // console.log(`🛑 BRAKING NOW! Target Y=${targetY.toFixed(0)}, ReqDist=${brakingDistance.toFixed(0)}`);
+          }
+          // Nếu targetY < lowerBound: Đã lỡ cơ hội phanh (target trôi quá sâu). Kệ nó, chờ recycle vòng sau.
+          // Nếu targetY > upperBound: Chưa tới lúc phanh.
+        } else {
+          // Target chưa xuất hiện -> Tiếp tục quay max speed
+        }
+      } else {
+        // Không có target cụ thể -> Dừng ngay lập tức (cứ phanh bừa)
+        readyToBrake = true;
+      }
+
+      if (readyToBrake) {
+        this.spinSpeed -= this.decelerationRate * dt;
+
+        // --- PHASE 3: STOPPING ---
+        if (this.spinSpeed <= 50) { // Ngưỡng dừng hẳn
+          this.spinSpeed = 0;
+          this.isSpinning = false;
+          this.isStopping = false;
+          this.alignSymbols();
+          console.log('✅ Reel stopped completely.');
+          return;
+        }
+      } else {
+        // Nếu chưa đến lúc phanh, hãy đảm bảo vẫn giữ tốc độ target
+        if (this.spinSpeed < this.targetSpeed) {
+          this.spinSpeed += this.accelerationRate * dt;
+        }
       }
     }
 
-    // Di chuyển symbols xuống
-    if (this.spinSpeed > 0) {
-      // Tính opacity dựa trên tốc độ (0 = trong suốt, 1 = không mờ)
-      const blurAmount = Math.min(this.spinSpeed / this.targetSpeed, 1); // 0-1
-      const opacity = 255 * (1 - blurAmount * 0.25); // Giảm tối đa 25% opacity khi quay nhanh nhất (vẫn nhìn thấy rõ)
+    // --- MOVEMENT & RENDERING logic ---
 
-      this.symbols.forEach(symbol => {
-        const pos = symbol.position;
-        symbol.setPosition(pos.x, pos.y - this.spinSpeed * dt, pos.z);
+    // Tính opacity/blur
+    const blurAmount = Math.min(this.spinSpeed / this.targetSpeed, 1);
+    const opacity = 255 * (1 - blurAmount * 0.25);
 
-        // Apply blur effect bằng cách giảm opacity
-        const symbolComponent = symbol.getComponent(Symbol)!;
-        symbolComponent.setOpacity(opacity);
+    this.symbols.forEach(symbol => {
+      // 1. Di chuyển
+      const pos = symbol.position;
+      symbol.setPosition(pos.x, pos.y - this.spinSpeed * dt, pos.z);
 
-        // Apply motion blur trail (ghost copies)
-        symbolComponent.createMotionBlur(blurAmount);
+      // 2. Visual effects
+      const symbolComponent = symbol.getComponent(Symbol)!;
+      symbolComponent.setOpacity(opacity);
+      symbolComponent.createMotionBlur(blurAmount);
 
-        // Infinite scroll: khi symbol đi xuống dưới, đưa lên trên
-        // CHỈ wrap khi ĐANG quay, KHÔNG wrap khi đang dừng (isStopping)
-        if (pos.y < -135 && !this.isStopping) {
-          symbol.setPosition(
-            pos.x,
-            pos.y + this.symbolHeight * this.symbolCount,
-            pos.z
-          );
+      // 3. Infinite Scroll (Recycle)
+      // Logic cũ: if (pos.y < -135 && !this.isStopping)
+      // FIX MỚI: Vẫn cho phép recycle khi isStopping, MIỄN LÀ readyToBrake chưa kích hoạt!
+      // (Thực tế logic recycle độc lập với braking state, nó chỉ dựa vào vị trí)
 
-          // Đổi hình ảnh random khi recycle
-          const randomId = Math.floor(Math.random() * this.symbolSpriteFrames.length);
-          symbolComponent.setSymbol(randomId, this.symbolSpriteFrames[randomId]);
+      const thresholdY = -this.symbolHeight - 15; // ~ -135
+
+      if (pos.y < thresholdY) {
+        // Chỉ recycle nếu đang quay nhanh hoặc target chưa bị trôi qua quá xa
+        // (Thực tế chỉ cần check y < threshold là đủ để đưa lên trên đầu)
+
+        symbol.setPosition(
+          pos.x,
+          pos.y + this.symbolHeight * this.symbolCount,
+          pos.z
+        );
+
+        // DATA INJECTION logic
+        let symbolIdToSet: number;
+
+        // Ưu tiên inject target nếu đang cần tìm nó
+        if (this.targetSymbolId !== null && this.isStopping && !this.isTargetSymbolPlaced()) {
+          symbolIdToSet = this.targetSymbolId;
+          console.log(`🎯 Start Stopping... Injecting Target ID: ${this.targetSymbolId}`);
+        } else {
+          // Random bình thường
+          symbolIdToSet = Math.floor(Math.random() * this.symbolSpriteFrames.length);
         }
-      });
-    } else {
-      // Khi không quay, đảm bảo opacity = 255 (hoàn toàn rõ) và xóa motion blur mượt mà
-      this.symbols.forEach(symbol => {
-        const symbolComponent = symbol.getComponent(Symbol)!;
-        symbolComponent.setOpacity(255);
-        symbolComponent.removeMotionBlur(true); // smooth = true → fade out mượt khi STOP
-      });
-    }
+
+        symbolComponent.setSymbol(symbolIdToSet, this.symbolSpriteFrames[symbolIdToSet]);
+      }
+    });
   }
 
 
   public getVisibleSymbols(): number[] {
-    // Giả sử symbols[1], symbols[2], symbols[3] là 3 cái giữa
+    // Lấy 3 symbols GẦN TRUNG TÂM NHẤT theo vị trí Y
+    // Row 1 (trên):   Y ≈ 120
+    // Row 2 (giữa):   Y ≈ 0    ← TARGET ROW  
+    // Row 3 (dưới):   Y ≈ -120
+
+    const targetYPositions = [120, 0, -120]; // Từ trên xuống
     const result: number[] = [];
-    for (let i = 1; i <= 3; i++) {
-      const symbol = this.symbols[i]?.getComponent(Symbol);
-      if (symbol) {
-        result.push(symbol.getSymbolId());
+
+    targetYPositions.forEach(targetY => {
+      let closestSymbol: Node | null = null;
+      let minDistance = Infinity;
+
+      // Tìm symbol gần targetY nhất
+      this.symbols.forEach(symbolNode => {
+        const distance = Math.abs(symbolNode.position.y - targetY);
+        if (distance < minDistance) {
+          minDistance = distance;
+          closestSymbol = symbolNode;
+        }
+      });
+
+      if (closestSymbol) {
+        const symbolComponent = closestSymbol.getComponent(Symbol)!;
+        result.push(symbolComponent.getSymbolId());
       }
-    }
+    });
+
     return result;
   }
 }
