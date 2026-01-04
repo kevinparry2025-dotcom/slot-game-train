@@ -1,6 +1,6 @@
-# Hướng Dẫn Part 2: All-in-One (Phiên Bản V15 - Full 8 Modules)
+# Hướng Dẫn Part 2 & Part 3: All-in-One (Phiên Bản V16 - Full Part 2 + Part 3)
 
-Đây là tài liệu hướng dẫn **TRỌN VẸN 100%** với 8 modules chi tiết. Bao gồm Popup System, UI/UX, Lobby, Loading, Toast, Paytable, **Scrim Troubleshooting** và **Slider Setup**.
+Đây là tài liệu hướng dẫn **TRỌN VẸN 100%** bao gồm **Part 2** (8 modules UI/UX) và **Part 3** (5 modules Audio/Particles/Juice). Từ Popup System, Settings, Scrim, Slider đến AudioManager, Win Rollup, Particles và Auto-Spin.
 
 ---
 
@@ -502,3 +502,259 @@ Sau khi hoàn thành tất cả modules, bạn sẽ có:
 
 **Lưu ý:** Nhớ **Save Scene** và **Save Prefab** sau mỗi thay đổi!
 
+
+---
+
+# ═══════════════════════════════════════════════════════════════
+# PART 3: AUDIO, PARTICLES & "THE JUICE"
+# ═══════════════════════════════════════════════════════════════
+
+> **Mục tiêu:** Làm cho game GÂY NGHIỆN bằng âm thanh + hiệu ứng đẹp!
+
+---
+
+## 🎵 MODULE 9: AudioManager - Hệ Thống Âm Thanh
+
+### Khái Niệm: 3 Audio Channels
+
+![Audio Architecture](./images/audio_manager_architecture_1767509619973.png)
+
+Game slot cần **3 loại âm thanh chạy CÙNG LÚC**:
+1. **BGM** (Background Music): Nhạc nền loop
+2. **SFX** (Sound Effects): Click, reel stop, coin
+3. **Voiceover**: "Big Win!", "Jackpot!"
+
+### Code: AudioManager.ts
+
+```typescript
+import { _decorator, Component, AudioSource, AudioClip, sys } from 'cc';
+const { ccclass, property } = _decorator;
+
+@ccclass('AudioManager')
+export class AudioManager extends Component {
+    private static _instance: AudioManager;
+    static get instance() { return this._instance; }
+    
+    @property(AudioSource) bgmSource: AudioSource = null!;
+    @property(AudioSource) sfxSource: AudioSource = null!;
+    @property(AudioSource) voiceSource: AudioSource = null!;
+    
+    @property(AudioClip) bgm_lobby: AudioClip = null!;
+    @property(AudioClip) sfx_click: AudioClip = null!;
+    @property(AudioClip) sfx_win: AudioClip = null!;
+    
+    onLoad() { AudioManager._instance = this; }
+    
+    playBGM(clip: AudioClip) {
+        this.bgmSource.clip = clip;
+        this.bgmSource.loop = true;
+        this.bgmSource.play();
+    }
+    
+    playSFX(clip: AudioClip) {
+        this.sfxSource.playOneShot(clip);
+    }
+    
+    setMusicVolume(vol: number) {
+        this.bgmSource.volume = vol;
+        sys.localStorage.setItem('music', vol.toString());
+    }
+}
+```
+
+### Setup Trong Editor
+
+1. Tạo node `AudioManager` trong Scene
+2. Add 3 component `AudioSource`
+3. Gán vào properties: bgmSource, sfxSource, voiceSource
+4. Kéo file `.mp3` vào AudioClip properties
+
+---
+
+## 💰 MODULE 10: Win Rollup - Số Tiền Tăng Dần
+
+![Win Rollup](./images/win_rollup_timeline_1767509728593.png)
+
+### Công Thức Lerp
+
+```typescript
+currentValue = currentValue + (targetValue - currentValue) * speed * dt
+```
+
+### Code: WinDisplay.ts
+
+```typescript
+export class WinDisplay extends Component {
+    @property(Label) scoreLabel: Label = null!;
+    
+    private currentScore: number = 0;
+    private targetScore: number = 0;
+    private speed: number = 4.0;
+    
+    showWin(amount: number) {
+        this.currentScore = 0;
+        this.targetScore = amount;
+    }
+    
+    update(dt: number) {
+        if (this.currentScore < this.targetScore) {
+            this.currentScore += (this.targetScore - this.currentScore) * this.speed * dt;
+            this.scoreLabel.string = `$${Math.floor(this.currentScore)}`;
+            
+            if (Math.floor(this.currentScore) % 50 === 0) {
+                AudioManager.instance.playSFX(this.sfx_tick);
+            }
+            
+            if (this.targetScore - this.currentScore < 0.5) {
+                this.currentScore = this.targetScore;
+                this.scoreLabel.string = `$${this.targetScore}`;
+            }
+        }
+    }
+}
+```
+
+---
+
+## ✨ MODULE 11: Particle System
+
+![Particle System](./images/particle_system_exploded_1767509748377.png)
+
+### Setup Trong Editor
+
+1. **Create** → **Effects** → **Particle System 2D**
+2. **Configure:**
+
+| Property | Value |
+|----------|-------|
+| Texture | coin.png |
+| Duration | 1.0 |
+| Life | 1.0 ~ 1.5 |
+| Emission Rate | 100 |
+| Gravity | (0, -200) |
+| Start Speed | 200 ~ 300 |
+| Angle | 90 ± 45 |
+
+### Trigger Từ Code
+
+```typescript
+@property(ParticleSystem2D) coinParticle: ParticleSystem2D = null!;
+
+onWin(winAmount: number) {
+    this.coinParticle.node.setPosition(this.getWinSymbolPosition());
+    this.coinParticle.resetSystem();
+    
+    this.scheduleOnce(() => {
+        this.coinParticle.stopSystem();
+    }, 1.5);
+}
+```
+
+---
+
+## 🔄 MODULE 12: Auto-Spin State Machine
+
+![Auto-Spin](./images/auto_spin_state_machine_1767509770926.png)
+
+### Code
+
+```typescript
+export class SlotMachine extends Component {
+    private isAutoSpin: boolean = false;
+    private autoSpinCount: number = 0;
+    
+    onSpinButtonPressed() {
+        this.scheduleOnce(this.startAutoSpin, 1.0);
+    }
+    
+    onSpinButtonReleased() {
+        this.unschedule(this.startAutoSpin);
+        if (!this.isAutoSpin) this.startSpin();
+    }
+    
+    startAutoSpin() {
+        this.isAutoSpin = true;
+        this.autoSpinCount = 10;
+        this.autoSpinLoop();
+    }
+    
+    autoSpinLoop() {
+        if (this.autoSpinCount > 0 && this.isAutoSpin) {
+            this.startSpin();
+            this.autoSpinCount--;
+            this.scheduleOnce(this.autoSpinLoop, 2.0);
+        } else {
+            this.isAutoSpin = false;
+        }
+    }
+    
+    onScreenClicked() {
+        if (this.isAutoSpin) {
+            this.isAutoSpin = false;
+            this.unscheduleAllCallbacks();
+        }
+    }
+}
+```
+
+---
+
+## 🎶 MODULE 13: Audio Dynamics (Advanced)
+
+![Audio Dynamics](./images/audio_dynamics_graph_1767509792930.png)
+
+### Concept: Anticipation
+
+Khi có 2 Scatter symbols → Tăng pitch BGM lên!
+
+```typescript
+checkForNearWin() {
+    const scatterCount = this.countScatterSymbols();
+    
+    if (scatterCount === 2) {
+        AudioManager.instance.setBGMPitch(1.1);
+        AudioManager.instance.playSFX(this.sfx_tension);
+        this.lastReel.spinSpeed *= 1.3;
+    }
+}
+
+onAllReelsStopped() {
+    AudioManager.instance.setBGMPitch(1.0);
+}
+```
+
+---
+
+## 📋 Part 3 Checklist
+
+### **Must-Have:**
+- [ ] AudioManager với BGM + SFX
+- [ ] Win Rollup (lerp animation)
+- [ ] Particle System (coin explosion)
+
+### **Nice-to-Have:**
+- [ ] Audio Dynamics (pitch tăng)
+- [ ] Auto-Spin (hold button)
+- [ ] Voiceover "Big Win!"
+
+### **Advanced:**
+- [ ] Spine animations
+- [ ] Line connectors
+- [ ] Multiple particle effects
+
+---
+
+## 🏆 Tổng Kết Toàn Bộ
+
+Sau khi hoàn thành **Part 2 + Part 3**, bạn sẽ có:
+
+✅ **PopupManager + Scrim** - UI system chuyên nghiệp  
+✅ **Settings với Slider** - User preferences  
+✅ **AudioManager** - Âm thanh phong phú  
+✅ **Win Rollup** - Số tiền tăng dần  
+✅ **Particles** - Hiệu ứng thị giác  
+✅ **Auto-Spin** - Gameplay tiện lợi  
+
+**Game giờ đã:** Nhìn đẹp, nghe hay, chơi nghiện! 🎰🎉
+
+**Lưu ý:** Nhớ **Save Scene** và **Save Prefab** sau mỗi thay đổi!

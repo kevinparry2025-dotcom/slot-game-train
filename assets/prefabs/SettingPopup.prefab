@@ -1364,8 +1364,8 @@
     },
     "_contentSize": {
       "__type__": "cc.Size",
-      "width": 85.00751258746219,
-      "height": 50.4
+      "width": 85.01130549829043,
+      "height": 50.400000000000006
     },
     "_anchorPoint": {
       "__type__": "cc.Vec2",
@@ -1403,7 +1403,7 @@
     "_string": "Music",
     "_horizontalAlign": 1,
     "_verticalAlign": 1,
-    "_actualFontSize": 61.96874999999999,
+    "_actualFontSize": 58.265625,
     "_fontSize": 30,
     "_fontFamily": "Arial",
     "_lineHeight": 40,

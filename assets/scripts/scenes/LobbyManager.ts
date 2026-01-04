@@ -4,6 +4,7 @@ import { GameType } from '../utils/Game';
 import { AssetLoader } from '../core/AssetLoader';
 import { GameManager } from '../core/GameManager';
 import { PopupManager } from '../ui/PopupManager';
+import { AudioManager } from '../core/AudioManager';
 
 @ccclass('LobbyManager')
 export class LobbyManager extends Component {
@@ -26,6 +27,7 @@ export class LobbyManager extends Component {
     settingsButton: Button = null!;
 
     start() {
+        AudioManager.instance.playBGM(AudioManager.instance.bgm_lobby);
         this.registerButtonEvents();
     }
 
