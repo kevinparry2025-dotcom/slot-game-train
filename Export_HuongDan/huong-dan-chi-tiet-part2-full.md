@@ -1,6 +1,6 @@
-# Hướng Dẫn Part 2: All-in-One (Phiên Bản V14 - Hình Ảnh Minhh Họa Chi Tiết)
+# Hướng Dẫn Part 2: All-in-One (Phiên Bản V15 - Full 8 Modules)
 
-Đây là tài liệu hướng dẫn **TRỌN VẸN 100%**. Module 2.1 đã được cập nhật hình ảnh minh họa thực tế dễ hình dung nhất.
+Đây là tài liệu hướng dẫn **TRỌN VẸN 100%** với 8 modules chi tiết. Bao gồm Popup System, UI/UX, Lobby, Loading, Toast, Paytable, **Scrim Troubleshooting** và **Slider Setup**.
 
 ---
 
@@ -309,3 +309,196 @@ Setup ScrollView Structure chính xác như hình:
     *   Type: VERTICAL.
     *   Resize Mode: CONTAINER.
 3.  Thêm các text/ảnh con vào `content`.
+
+---
+
+## 🎭 MODULE 7: Scrim (Nền Mờ Popup) - Troubleshooting
+
+### Scrim Là Gì?
+
+**Scrim** là lớp nền đen mờ xuất hiện phía sau popup, có 3 mục đích:
+1. **Làm nổi bật popup** (tạo focus)
+2. **Chặn click xuyên thấu** xuống UI bên dưới
+3. **Tạo chiều sâu UI** (depth)
+
+### Setup Scrim Trong PopupManager
+
+**Cấu trúc:**
+```
+PopupManager
+├── Scrim (Sprite + Widget + BlockInputEvents)
+└── PopupContainer
+```
+
+**Bước 1: Tạo Node Scrim**
+1. Chuột phải `PopupManager` → Create → **UI Component** → **Sprite**
+2. Đổi tên thành `Scrim`
+3. **Kéo Scrim lên trên PopupContainer** trong danh sách
+
+**Bước 2: Cấu Hình Sprite**
+1. **Sprite Frame**: Chọn `default_sprite` (trong `internal/default_ui/`)
+2. **Type**: `SIMPLE`
+3. **Color**: `#000000` (đen)
+4. **Opacity**: `150` (60% trong suốt)
+
+**Bước 3: Add Widget (Auto Resize)**
+1. Add Component → `Widget`
+2. Tick ✅ cả 4 cạnh:
+   - Left = `0`, Right = `0`
+   - Top = `0`, Bottom = `0`
+3. Align Mode: `ALWAYS` hoặc `ON_WINDOW_RESIZE`
+
+**Bước 4: Add BlockInputEvents**
+1. Add Component → `BlockInputEvents`
+
+**Bước 5: Gán Vào PopupManager**
+1. Chọn `PopupManager` (node cha)
+2. Kéo `Scrim` vào property `Scrim Node`
+3. **Bỏ tick Active** cho Scrim (để ẩn ban đầu)
+
+### Debug: Scrim Không Hiển Thị?
+
+**Test nhanh:**
+- Đổi Color thành `#FF0000` (đỏ)
+- Opacity = `255`
+- Chạy game → Nếu thấy màu đỏ = Scrim hoạt động
+
+**Checklist:**
+- [ ] Scrim có Sprite Component với SpriteFrame
+- [ ] Widget đã tick cả 4 cạnh (Left/Right/Top/Bottom)
+- [ ] BlockInputEvents đã add
+- [ ] Scrim ở **trên** PopupContainer trong Hierarchy
+- [ ] Property `scrimNode` đã gán trong PopupManager script
+
+---
+
+## 🎚️ MODULE 8: Slider Setup (Thanh Trượt)
+
+### Hiểu Cấu Trúc Slider
+
+Slider gồm 3 phần chồng lên nhau:
+![Slider Visual](./images/slider_visual_breakdown_1767497103299.png)
+
+- **Layer 1**: Background (thanh nền xám)
+- **Layer 2**: ProgressBar (thanh màu, thay đổi độ dài)
+- **Layer 3**: Handle (cục tròn để kéo)
+
+### Bước Setup Slider
+
+#### **Bước 1: Sắp Xếp Hierarchy**
+
+![Slider Hierarchy](./images/slider_hierarchy_structure_1767497062025.png)
+
+1. Tạo node cha `VolumeSlider` (Empty Node)
+2. Kéo 3 node vào làm con:
+   - `bg-slider` (Background)
+   - `slider-fill` (ProgressBar)
+   - `Handle` (cục tròn)
+
+**Cấu trúc:**
+```
+VolumeSlider
+├── bg-slider
+├── slider-fill
+└── Handle
+```
+
+#### **Bước 2: Add Component cc.Slider**
+
+1. Chọn `VolumeSlider`
+2. Add Component → `Slider`
+
+#### **Bước 3: Cấu Hình cc.Slider**
+
+![Slider Inspector](./images/slider_component_inspector_1767497080732.png)
+
+1. **Handle**: Kéo node `Handle` vào
+2. **Progress Bar**: Kéo node `slider-fill` vào
+3. **Direction**: Chọn `HORIZONTAL`
+4. **Progress**: Đặt `0.5`
+
+#### **Bước 4: Đặt Position = (0,0,0)**
+
+Tất cả node con phải có Position = `X:0, Y:0, Z:0`:
+- bg-slider → Position (0, 0, 0)
+- slider-fill → Position (0, 0, 0)
+- Handle → Position (0, 0, 0)
+
+#### **Bước 5: Cấu Hình Anchor Point**
+
+**Chọn `slider-fill`** → UITransform:
+- **Anchor Point**: `X = 0`, `Y = 0.5`
+- (Giúp thanh mở rộng từ trái sang phải)
+
+#### **Bước 6: Gán Vào SettingsPopup**
+
+1. Chọn `SettingsPopup` (node gốc)
+2. Component `SettingsPopup` (Script)
+3. Property `Volume Slider` → Kéo node `VolumeSlider` vào
+
+#### **Bước 7: Gán Event Cho Slider**
+
+Để Slider gọi hàm khi kéo:
+
+1. **Chọn node `VolumeSlider`**
+2. **Inspector** → **cc.Slider** → Scroll xuống **Slide Events**
+3. Click **+** để thêm event mới
+4. **Kéo node `SettingsPopup`** (node gốc) vào ô target
+5. **Component** → Chọn `SettingsPopup`
+6. **Method** → Chọn `onSliderChanged`
+
+**Giải thích:**
+- Khi kéo slider → Gọi `SettingsPopup.onSliderChanged()`
+- Hàm này lưu giá trị vào `localStorage`
+- Code đã có sẵn trong MODULE 2.5!
+
+### Code Tham Khảo
+
+Code này đã có trong **MODULE 2.5**, nhưng nhắc lại để tiện:
+
+```typescript
+// File: SettingsPopup.ts (đã tạo sẵn)
+@property(Slider) volumeSlider: Slider = null!;
+
+start() {
+    // Đọc giá trị đã lưu
+    const savedVol = sys.localStorage.getItem('volume');
+    if (savedVol) {
+        this.volumeSlider.progress = parseFloat(savedVol);
+    }
+}
+
+// Hàm này được gọi khi kéo slider (đã gán event ở Bước 7)
+onSliderChanged(slider: Slider) {
+    sys.localStorage.setItem('volume', slider.progress.toString());
+    console.log('Volume:', slider.progress); // 0.0 → 1.0
+}
+```
+
+### Troubleshooting Slider
+
+**Vấn đề: Slider không kéo được**
+- Kiểm tra: Handle đã gán vào cc.Slider chưa?
+
+**Vấn đề: ProgressBar không thay đổi**
+- Kiểm tra: Progress Bar đã gán vào cc.Slider chưa?
+
+**Vấn đề: ProgressBar giãn sai hướng**
+- Kiểm tra: Anchor Point của slider-fill = (0, 0.5) chưa?
+
+---
+
+## ✅ Tổng Kết
+
+Sau khi hoàn thành tất cả modules, bạn sẽ có:
+
+✅ **Popup System** với animation mượt mà  
+✅ **Scrim** chặn click và làm nổi bật popup  
+✅ **Settings Popup** với Slider hoạt động  
+✅ **Lobby Scene** với nút Settings  
+✅ **Loading Screen** với progress bar  
+✅ **Toast** và **Juice effects**  
+✅ **ScrollView** cho Paytable  
+
+**Lưu ý:** Nhớ **Save Scene** và **Save Prefab** sau mỗi thay đổi!
+

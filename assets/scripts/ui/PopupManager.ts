@@ -20,6 +20,10 @@ export class PopupManager extends Component {
         const node = instantiate(prefab);
         this.popupContainer.addChild(node);
         const popup = node.getComponent(PopupBase);
+        if (!popup) {
+            console.error('Prefab không có component PopupBase!', node.name);
+            return;
+        }
         this.scrimNode.active = true;
         popup.show();
     }

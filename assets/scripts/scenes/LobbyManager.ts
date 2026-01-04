@@ -1,11 +1,14 @@
-import { _decorator, Component, Button, director, Sprite, tween, UIOpacity } from 'cc';
+import { _decorator, Component, Button, director, Sprite, tween, UIOpacity, Prefab } from 'cc';
 const { ccclass, property } = _decorator;
 import { GameType } from '../utils/Game';
 import { AssetLoader } from '../core/AssetLoader';
 import { GameManager } from '../core/GameManager';
+import { PopupManager } from '../ui/PopupManager';
 
 @ccclass('LobbyManager')
 export class LobbyManager extends Component {
+    @property(Prefab)
+    settingsPrefab: Prefab = null!;
 
     @property(Sprite)
     fadeOverlay: Sprite = null!;
@@ -23,7 +26,6 @@ export class LobbyManager extends Component {
     settingsButton: Button = null!;
 
     start() {
-
         this.registerButtonEvents();
     }
 
@@ -75,8 +77,11 @@ export class LobbyManager extends Component {
     }
 
     private onSettingsClicked() {
-        console.log('Settings clicked');
-        alert('Settings popup (sẽ implement sau)');
+        if (!PopupManager.instance) {
+            console.error('PopupManager chưa được khởi tạo!');
+            return;
+        }
+        PopupManager.instance.show(this.settingsPrefab);
     }
 
     private loadSceneWithFade(sceneName: string) {
