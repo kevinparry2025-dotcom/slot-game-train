@@ -1,6 +1,7 @@
 import { _decorator, Component, Node, Button } from 'cc';
 import { ReelGroup } from '../reel/ReelGroup';
 import { PharaohReelConfig } from '../reel/ReelConfig';
+import { AudioManager } from '../core/AudioManager';
 const { ccclass, property } = _decorator;
 
 enum SlotState {
@@ -28,6 +29,16 @@ export class PharaohSlotMachine extends Component {
     private targetResult: number[] = []; // Kết quả mục tiêu từ Result Matrix
 
     start() {
+        // Nếu không có AudioManager (test trực tiếp GameScene)
+        if (!AudioManager.instance) {
+            console.warn('⚠️ AudioManager missing, creating temporary one...');
+            // TODO: Tạo AudioManager node tạm
+        } else {
+            // Có AudioManager rồi (đúng flow từ Lobby)
+            if (AudioManager.instance.bgm_pharaoh) {
+                AudioManager.instance.fadeBGM(AudioManager.instance.bgm_pharaoh, 1.5);
+            }
+        }
         this.setState(SlotState.IDLE);
         this.init();
     }

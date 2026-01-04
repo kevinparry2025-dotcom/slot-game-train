@@ -1,4 +1,4 @@
-import { _decorator, Component, AudioSource, AudioClip, sys, director } from 'cc';
+import { _decorator, Component, AudioSource, AudioClip, sys, director, tween } from 'cc';
 const { ccclass, property } = _decorator;
 
 @ccclass('AudioManager')
@@ -14,10 +14,41 @@ export class AudioManager extends Component {
     @property(AudioSource) sfxSource: AudioSource = null!;
     @property(AudioSource) voiceSource: AudioSource = null!;
 
-    // Các file nhạc
-    @property(AudioClip) bgm_lobby: AudioClip = null!;
-    @property(AudioClip) sfx_click: AudioClip = null!;
-    @property(AudioClip) sfx_win: AudioClip = null!;
+    // ═══════════════════════════════════════════════════════════
+    // BGM (Background Music) - Mỗi Scene/Game 1 File
+    // ═══════════════════════════════════════════════════════════
+    @property({ type: AudioClip, tooltip: 'Nhạc nền Lobby' })
+    bgm_lobby: AudioClip = null!;
+
+    @property({ type: AudioClip, tooltip: 'Nhạc nền Game Fruits' })
+    bgm_fruits: AudioClip = null!;
+
+    @property({ type: AudioClip, tooltip: 'Nhạc nền Game Dragon' })
+    bgm_dragon: AudioClip = null!;
+
+    @property({ type: AudioClip, tooltip: 'Nhạc nền Game Pharaoh' })
+    bgm_pharaoh: AudioClip = null!;
+
+    // ═══════════════════════════════════════════════════════════
+    // SFX (Sound Effects) - Dùng Chung Cho Tất Cả Games
+    // ═══════════════════════════════════════════════════════════
+    @property({ type: AudioClip, tooltip: 'Tiếng click nút' })
+    sfx_click: AudioClip = null!;
+
+    @property({ type: AudioClip, tooltip: 'Tiếng bắt đầu spin' })
+    sfx_spin: AudioClip = null!;
+
+    @property({ type: AudioClip, tooltip: 'Tiếng reel dừng' })
+    sfx_reelStop: AudioClip = null!;
+
+    @property({ type: AudioClip, tooltip: 'Tiếng coin rơi' })
+    sfx_coin: AudioClip = null!;
+
+    @property({ type: AudioClip, tooltip: 'Tiếng thắng nhỏ' })
+    sfx_winSmall: AudioClip = null!;
+
+    @property({ type: AudioClip, tooltip: 'Tiếng thắng lớn' })
+    sfx_winBig: AudioClip = null!;;
 
     onLoad() {
         // Singleton pattern - chỉ tạo 1 instance duy nhất
@@ -48,9 +79,24 @@ export class AudioManager extends Component {
         this.bgmSource.play();
     }
 
+    // Fade BGM (chuyển mượt giữa các nhạc nền)
+    fadeBGM(newClip: AudioClip, fadeTime: number = 1.0) {
+        // Fade out BGM cũ
+        tween(this.bgmSource)
+            .to(fadeTime / 2, { volume: 0 })
+            .call(() => {
+                // Đổi sang BGM mới
+                this.bgmSource.clip = newClip;
+                this.bgmSource.loop = true;
+                this.bgmSource.play();
+            })
+            .to(fadeTime / 2, { volume: 0.5 }) // Fade in
+            .start();
+    }
+
     // Phát SFX (1 lần)
-    playSFX(clip: AudioClip) {
-        this.sfxSource.playOneShot(clip);
+    playSFX(clip: AudioClip, volume: number = 1.0) {
+        this.sfxSource.playOneShot(clip, volume);
     }
 
     // Điều chỉnh volume (từ Settings)
