@@ -150,6 +150,14 @@
     "sprite": {
       "__id__": 4
     },
+    "normalMaterial": {
+      "__uuid__": "3b88c8e9-53b3-4e4c-b3b9-5f6a9224ad71",
+      "__expectedType__": "cc.Material"
+    },
+    "blurMaterial": {
+      "__uuid__": "1fb17d24-de7f-4c08-b847-99118cde6faf",
+      "__expectedType__": "cc.Material"
+    },
     "_id": ""
   },
   {

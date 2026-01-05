@@ -119,12 +119,18 @@ export class Reel extends Component {
     // Không set isSpinning = false ngay, để logic update xử lý việc "bắt" target
   }
 
+  // Callback khi reel dừng hẳn
+  public onStop?: () => void;
+
   /**
    * Căn chỉnh symbols về grid gần nhất (small snap only)
    * Mỗi symbol chỉ di chuyển tối đa ±60px
    */
   private alignSymbols() {
     // console.log(`🎯 Aligning symbols to nearest grid...`);
+
+    let completedCount = 0;
+    const totalSymbols = this.symbols.length;
 
     this.symbols.forEach((symbol, index) => {
       const currentY = symbol.position.y;
@@ -135,6 +141,15 @@ export class Reel extends Component {
 
       tween(symbol)
         .to(0.2, { position: new Vec3(0, nearestGridY, 0) })
+        .call(() => {
+          completedCount++;
+          // Khi tất cả symbol đã snap xong -> Trigger callback
+          if (completedCount === totalSymbols) {
+            if (this.onStop) {
+              this.onStop();
+            }
+          }
+        })
         .start();
     });
 

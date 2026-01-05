@@ -27,6 +27,14 @@ export class LobbyManager extends Component {
     settingsButton: Button = null!;
 
     start() {
+        // Check if returning from a game
+        const previousGame = GameManager.instance.getCurrentGame();
+        if (previousGame) {
+            console.log(`🔙 Returned from ${previousGame}, releasing bundle...`);
+            AssetLoader.instance.releaseBundle(`game_${previousGame}`);
+            GameManager.instance.setCurrentGame(''); // Clear current game
+        }
+
         AudioManager.instance.playBGM(AudioManager.instance.bgm_lobby);
         this.registerButtonEvents();
     }

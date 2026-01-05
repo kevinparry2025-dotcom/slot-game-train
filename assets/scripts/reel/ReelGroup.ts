@@ -13,6 +13,9 @@ export class ReelGroup extends Component {
     private currentReelIndex: number = 0;
 
 
+    // Callback khi từng reel dừng: (index) => void
+    public onReelStop?: (index: number) => void;
+
     /**
      * Khởi tạo ReelGroup với configuration
      */
@@ -23,8 +26,16 @@ export class ReelGroup extends Component {
         }
 
         // Khởi tạo tất cả reels với cùng config
-        this.reels.forEach(reel => {
+        this.reels.forEach((reel, index) => {
             reel.init(this.config);
+
+            // Lắng nghe sự kiện dừng từ reel
+            reel.onStop = () => {
+                // console.log(`🛑 ReelGroup: Reel ${index} stopped.`);
+                if (this.onReelStop) {
+                    this.onReelStop(index);
+                }
+            };
         });
     }
 

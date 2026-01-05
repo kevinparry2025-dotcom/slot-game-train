@@ -1,7 +1,8 @@
-import { _decorator, Component, Node, Button } from 'cc';
+import { _decorator, Component, Node, Button, find, director } from 'cc';
 import { ReelGroup } from '../reel/ReelGroup';
 import { PharaohReelConfig } from '../reel/ReelConfig';
 import { AudioManager } from '../core/AudioManager';
+import { GameSceneManager } from '../scenes/GameSceneManager';
 const { ccclass, property } = _decorator;
 
 enum SlotState {
@@ -46,6 +47,14 @@ export class PharaohSlotMachine extends Component {
         // Khởi tạo reelGroup với config của game Pharaoh
         this.reelGroup.init(PharaohReelConfig);
 
+        // Lắng nghe sự kiện Reel Stop từ ReelGroup (Real-time timing)
+        this.reelGroup.onReelStop = (reelIndex: number) => {
+            // 🔊 Sound: Reel Stop (Chính xác thời điểm reel dừng)
+            if (AudioManager.instance) {
+                AudioManager.instance.playSFX(AudioManager.instance.sfx_reelStop);
+            }
+        };
+
         // Đảm bảo nút spin được bật
         this.btnSpin.active = true;
         this.btnSpinDisable.active = false;
@@ -60,6 +69,11 @@ export class PharaohSlotMachine extends Component {
             return;
         }
 
+        // 🔊 Sound: Click
+        // if (AudioManager.instance) {
+        //     AudioManager.instance.playSFX(AudioManager.instance.sfx_click);
+        // }
+
         // Disable nút spin (chuyển sang màu mờ/không ấn được)
         this.btnSpin.active = false;
         this.btnSpinDisable.active = true;
@@ -71,6 +85,11 @@ export class PharaohSlotMachine extends Component {
      * Bắt đầu quay
      */
     private startSpin() {
+        // 🔊 Sound: Spin Start (Start Loop)
+        if (AudioManager.instance) {
+            AudioManager.instance.playSpinLoop();
+        }
+
         // RESULT MATRIX: Generate kết quả NGAY TỪ ĐẦU (Frontend)
         this.targetResult = this.generateRandomResult();
         console.log('🎯 Pharaoh Result Matrix generated:', this.targetResult);
@@ -107,7 +126,7 @@ export class PharaohSlotMachine extends Component {
     }
 
     private setState(newState: SlotState) {
-        console.log(`� Pharaoh State: ${this.currentState} → ${newState}`);
+        console.log(`👑 Pharaoh State: ${this.currentState} → ${newState}`);
         this.currentState = newState;
 
         // TODO: Update UI theo state
@@ -122,6 +141,22 @@ export class PharaohSlotMachine extends Component {
         // RESULT MATRIX: Truyền kết quả mục tiêu cho reels
         this.reelGroup.stopWithResult(this.targetResult);
 
+        // 🔊 Sound: Reel Stop (Sequentially)
+        // ✅ NOW HANDLED BY EVENT: this.reelGroup.onReelStop
+        /*
+        if (AudioManager.instance) {
+            // Giả sử mỗi reel dừng cách nhau khoảng 0.2s - 0.3s
+            const stopDelay = 0.2; 
+            const reelCount = this.targetResult.length; // 5 reels
+
+            for (let i = 0; i < reelCount; i++) {
+                this.scheduleOnce(() => {
+                    AudioManager.instance.playSFX(AudioManager.instance.sfx_reelStop);
+                }, i * stopDelay);
+            }
+        }
+        */
+
         // Dừng hết 3 reels mất: 0.3s * 3 + 0.5s (animation) ≈ 1.5s
         this.scheduleOnce(() => {
             this.showResult();
@@ -132,11 +167,17 @@ export class PharaohSlotMachine extends Component {
   * Hiển thị kết quả
   */
     private showResult() {
+        // 🔊 Sound: Stop Spin Loop (Khi tất cả reel đã dừng)
+        if (AudioManager.instance) {
+            AudioManager.instance.stopSpinLoop();
+        }
+
         this.setState(SlotState.RESULT);
         this.btnSpin.active = true;
         this.btnSpinDisable.active = false;
 
         // TODO: Check win logic
+        // if (AudioManager.instance) AudioManager.instance.playSFX(AudioManager.instance.sfx_winSmall);
 
         // Sau 1s quay về IDLE để cho spin tiếp
         this.scheduleOnce(() => {
@@ -145,6 +186,48 @@ export class PharaohSlotMachine extends Component {
             const result = this.reelGroup.getResult();
             console.log('👑 Pharaoh Result (at IDLE):', result);
         }, 1);
+    }
+
+    /**
+     * Xử lý khi user click nút Back
+     * Load trực tiếp về LobbyScene
+     */
+    public backToLobby() {
+        console.log('🔙 Going back to lobby...');
+
+        // Cleanup: Dừng tất cả scheduled callbacks trong PharaohSlotMachine
+        this.unscheduleAllCallbacks();
+
+        // Cleanup: Dừng tất cả scheduled callbacks trong ReelGroup
+        if (this.reelGroup) {
+            this.reelGroup.unscheduleAllCallbacks();
+
+            // Dừng callbacks trong từng reel
+            this.reelGroup.reels.forEach(reel => {
+                if (reel) {
+                    reel.unscheduleAllCallbacks();
+                }
+            });
+        }
+
+        // Reset state
+        this.currentState = SlotState.IDLE;
+
+        // Tìm GameSceneManager và gọi backToLobby()
+        // GameSceneManager sẽ cleanup bundles và materials đúng cách
+        const canvas = find('Canvas');
+        if (!canvas) {
+            console.error('❌ Canvas not found!');
+            return;
+        }
+
+        // Tìm GameSceneManager trong Canvas
+        const manager = canvas.getComponent(GameSceneManager);
+        if (manager) {
+            manager.backToLobby();
+        } else {
+            console.error('❌ GameSceneManager component not found in Canvas children!');
+        }
     }
 }
 

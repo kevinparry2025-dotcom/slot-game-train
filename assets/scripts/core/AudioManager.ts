@@ -99,6 +99,32 @@ export class AudioManager extends Component {
         this.sfxSource.playOneShot(clip, volume);
     }
 
+    // Phát tiếng Spin liên tục (Loop)
+    playSpinLoop() {
+        if (!this.sfx_spin) return;
+
+        // Dùng voiceSource làm kênh riêng cho Spin Loop để không bị ngắt bởi playOneShot của sfxSource
+        this.voiceSource.stop(); // Stop trước đó nếu có
+        this.bgmSource.volume = 0.2;
+        this.voiceSource.clip = this.sfx_spin;
+        this.voiceSource.loop = true;
+        this.voiceSource.volume = 0.8; // Giảm volume chút cho đỡ ồn
+        this.voiceSource.play();
+    }
+
+    // Dừng tiếng Spin loop
+    stopSpinLoop() {
+        // Fade out nhẹ nhàng
+        tween(this.voiceSource)
+            .to(0.3, { volume: 0 })
+            .call(() => {
+                this.voiceSource.stop();
+                this.voiceSource.volume = 1.0; // Reset volume
+                this.bgmSource.volume = 1.0;
+            })
+            .start();
+    }
+
     // Điều chỉnh volume (từ Settings)
     setMusicVolume(vol: number) {
         this.bgmSource.volume = vol;
@@ -107,6 +133,8 @@ export class AudioManager extends Component {
 
     setSFXVolume(vol: number) {
         this.sfxSource.volume = vol;
+        // voiceSource cũng là SFX nhưng dạng loop
+        this.voiceSource.volume = vol;
         sys.localStorage.setItem('sfx', vol.toString());
     }
 }
