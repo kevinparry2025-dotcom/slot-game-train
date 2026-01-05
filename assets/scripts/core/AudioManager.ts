@@ -58,7 +58,21 @@ export class AudioManager extends Component {
             // Persist node qua scenes
             director.addPersistRootNode(this.node);
 
-            console.log('🎵 AudioManager instance created');
+            // Load saved volume
+            const savedMusic = sys.localStorage.getItem('music');
+            if (savedMusic) {
+                const vol = parseFloat(savedMusic);
+                this.bgmSource.volume = vol;
+            }
+
+            const savedSFX = sys.localStorage.getItem('sfx');
+            if (savedSFX) {
+                const vol = parseFloat(savedSFX);
+                this.sfxSource.volume = vol;
+                this.voiceSource.volume = vol;
+            }
+
+            console.log('🎵 AudioManager instance created. Music:', this.bgmSource.volume, 'SFX:', this.sfxSource.volume);
         } else {
             // Nếu đã có instance → Destroy duplicate
             console.warn('⚠️ AudioManager duplicate detected, destroying...');
@@ -105,7 +119,7 @@ export class AudioManager extends Component {
 
         // Dùng voiceSource làm kênh riêng cho Spin Loop để không bị ngắt bởi playOneShot của sfxSource
         this.voiceSource.stop(); // Stop trước đó nếu có
-        this.bgmSource.volume = 0.2;
+        this.bgmSource.volume = 0.1;
         this.voiceSource.clip = this.sfx_spin;
         this.voiceSource.loop = true;
         this.voiceSource.volume = 0.8; // Giảm volume chút cho đỡ ồn
@@ -120,7 +134,11 @@ export class AudioManager extends Component {
             .call(() => {
                 this.voiceSource.stop();
                 this.voiceSource.volume = 1.0; // Reset volume
-                this.bgmSource.volume = 1.0;
+
+                // Restore saved music volume
+                const savedMusic = sys.localStorage.getItem('music');
+                const targetVol = savedMusic ? parseFloat(savedMusic) : 1.0;
+                this.bgmSource.volume = targetVol;
             })
             .start();
     }

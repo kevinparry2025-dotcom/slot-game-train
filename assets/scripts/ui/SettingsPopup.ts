@@ -1,6 +1,7 @@
 import { _decorator, Slider, sys, Button } from 'cc';
 import { PopupBase } from './PopupBase';
 import { PopupManager } from './PopupManager';
+import { AudioManager } from '../core/AudioManager';
 const { ccclass, property } = _decorator;
 
 @ccclass('SettingsPopup')
@@ -13,9 +14,17 @@ export class SettingsPopup extends PopupBase {
     closeButton: Button = null!;
 
     start() {
-        const savedVol = sys.localStorage.getItem('volume');
-        if (savedVol) {
-            this.volumeSlider.progress = parseFloat(savedVol);
+        console.log('⚙️ SettingsPopup started');
+        // Init volume slider from AudioManager or LocalStorage
+        if (AudioManager.instance) {
+            console.log('✅ Found AudioManager instance in SettingsPopup');
+            this.musicSlider.progress = AudioManager.instance.bgmSource.volume;
+        } else {
+            console.warn('⚠️ AudioManager.instance NOT found in SettingsPopup start!');
+            const savedMusic = sys.localStorage.getItem('music');
+            if (savedMusic) {
+                this.musicSlider.progress = parseFloat(savedMusic);
+            }
         }
 
         this.saveButton.node.on(Button.EventType.CLICK, () => {
@@ -27,20 +36,28 @@ export class SettingsPopup extends PopupBase {
         }, this);
     }
 
-    // Gán hàm này vào Event 'Slide' của Slider trong Editor
-    // onSliderChanged(slider: Slider) {
-    //     sys.localStorage.setItem('volume', slider.progress.toString());
-    //     // AudioManager.instance.setVolume(slider.progress);
-    // }
+    // Called by Slider Event in Editor
+    onMusicSliderChanged(slider: Slider) {
+        if (AudioManager.instance) {
+            AudioManager.instance.setMusicVolume(slider.progress);
+        } else {
+            console.error('❌ AudioManager.instance is NULL in onMusicSliderChanged!');
+        }
+    }
+
+    // Optional: If you have SFX slider
+    onSFXSliderChanged(slider: Slider) {
+        if (AudioManager.instance) {
+            AudioManager.instance.setSFXVolume(slider.progress);
+        }
+    }
 
     private saveSettings() {
-        sys.localStorage.setItem('volume', this.volumeSlider.progress.toString());
-
-        // Tắt cả popup và Scrim
+        this.onMusicSliderChanged(this.musicSlider);
         PopupManager.instance.hideAll();
     }
+
     private hidePopup() {
         PopupManager.instance.hideAll();
     }
-
 }

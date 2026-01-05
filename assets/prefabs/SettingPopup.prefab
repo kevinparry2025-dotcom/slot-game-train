@@ -465,7 +465,7 @@
   },
   {
     "__type__": "cc.Node",
-    "_name": "Volume",
+    "_name": "Music",
     "_objFlags": 0,
     "__editorExtras__": {},
     "_parent": {
@@ -1364,8 +1364,8 @@
     },
     "_contentSize": {
       "__type__": "cc.Size",
-      "width": 85.01130549829043,
-      "height": 50.400000000000006
+      "width": 85.0158809158963,
+      "height": 50.4
     },
     "_anchorPoint": {
       "__type__": "cc.Vec2",
@@ -1403,7 +1403,7 @@
     "_string": "Music",
     "_horizontalAlign": 1,
     "_verticalAlign": 1,
-    "_actualFontSize": 58.265625,
+    "_actualFontSize": 58.3125,
     "_fontSize": 30,
     "_fontFamily": "Arial",
     "_lineHeight": 40,
@@ -1523,10 +1523,10 @@
     "container": {
       "__id__": 2
     },
-    "volumeSlider": {
+    "volumeSlider": null,
+    "musicSlider": {
       "__id__": 38
     },
-    "musicSlider": null,
     "saveButton": {
       "__id__": 50
     },

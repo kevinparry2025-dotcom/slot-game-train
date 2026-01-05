@@ -1,9 +1,10 @@
 import {
     _decorator, Component, Node, Sprite, SpriteFrame,
-    Prefab, instantiate, director
+    Prefab, instantiate, director, Button
 } from 'cc';
 import { GameManager } from '../core/GameManager';
 import { AssetLoader } from '../core/AssetLoader';
+import { PopupManager } from '../ui/PopupManager';
 const { ccclass, property } = _decorator;
 @ccclass('GameSceneManager')
 export class GameSceneManager extends Component {
@@ -11,6 +12,12 @@ export class GameSceneManager extends Component {
     gameContainer: Node = null!;
     @property(Sprite)
     backgroundSprite: Sprite = null!;
+    @property(Button)
+    settingsButton: Button = null!;
+    @property(Prefab)
+    settingsPrefab: Prefab = null!;
+
+
     private currentGameUI: Node | null = null;
     async start() {
         console.log('🎮 GameScene started');
@@ -27,6 +34,12 @@ export class GameSceneManager extends Component {
             console.error(`❌ Failed:`, error);
             director.loadScene('LobbyScene');
         }
+        if (this.settingsButton) {
+            this.settingsButton.node.on(Button.EventType.CLICK, () => {
+                this.onSettingsClicked();
+            }, this);
+        }
+
     }
     /**
      * Load game: background + prefab
@@ -109,6 +122,15 @@ export class GameSceneManager extends Component {
     /**
      * Back to lobby
      */
+
+    private onSettingsClicked() {
+        if (!PopupManager.instance) {
+            console.error('PopupManager chưa được khởi tạo!');
+            return;
+        }
+        PopupManager.instance.show(this.settingsPrefab);
+    }
+
     public backToLobby() {
         this.clearGameUI();
         const currentGame = GameManager.instance.getCurrentGame();
