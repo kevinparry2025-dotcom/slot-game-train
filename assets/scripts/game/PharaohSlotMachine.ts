@@ -70,9 +70,9 @@ export class PharaohSlotMachine extends Component {
         }
 
         // 🔊 Sound: Click
-        // if (AudioManager.instance) {
-        //     AudioManager.instance.playSFX(AudioManager.instance.sfx_click);
-        // }
+        if (AudioManager.instance) {
+            AudioManager.instance.playSFX(AudioManager.instance.sfx_click);
+        }
 
         // Disable nút spin (chuyển sang màu mờ/không ấn được)
         this.btnSpin.active = false;
@@ -140,22 +140,6 @@ export class PharaohSlotMachine extends Component {
 
         // RESULT MATRIX: Truyền kết quả mục tiêu cho reels
         this.reelGroup.stopWithResult(this.targetResult);
-
-        // 🔊 Sound: Reel Stop (Sequentially)
-        // ✅ NOW HANDLED BY EVENT: this.reelGroup.onReelStop
-        /*
-        if (AudioManager.instance) {
-            // Giả sử mỗi reel dừng cách nhau khoảng 0.2s - 0.3s
-            const stopDelay = 0.2; 
-            const reelCount = this.targetResult.length; // 5 reels
-
-            for (let i = 0; i < reelCount; i++) {
-                this.scheduleOnce(() => {
-                    AudioManager.instance.playSFX(AudioManager.instance.sfx_reelStop);
-                }, i * stopDelay);
-            }
-        }
-        */
 
         // Dừng hết 3 reels mất: 0.3s * 3 + 0.5s (animation) ≈ 1.5s
         this.scheduleOnce(() => {
