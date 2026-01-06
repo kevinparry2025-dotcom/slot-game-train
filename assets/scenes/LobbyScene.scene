@@ -2525,7 +2525,10 @@
     },
     "sfx_coin": null,
     "sfx_winSmall": null,
-    "sfx_winBig": null,
+    "sfx_winBig": {
+      "__uuid__": "e6d40742-cfbd-441d-a95b-4b110169a4bb",
+      "__expectedType__": "cc.AudioClip"
+    },
     "_id": "a6NZJQz2VCyI2t3QvsNH2p"
   },
   {

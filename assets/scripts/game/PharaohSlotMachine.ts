@@ -3,6 +3,7 @@ import { ReelGroup } from '../reel/ReelGroup';
 import { PharaohReelConfig } from '../reel/ReelConfig';
 import { AudioManager } from '../core/AudioManager';
 import { GameSceneManager } from '../scenes/GameSceneManager';
+import { SlotRuleManager } from './SlotRuleManager';
 const { ccclass, property } = _decorator;
 
 enum SlotState {
@@ -163,15 +164,29 @@ export class PharaohSlotMachine extends Component {
         this.btnSpin.active = true;
         this.btnSpinDisable.active = false;
 
-        // TODO: Check win logic
-        // if (AudioManager.instance) AudioManager.instance.playSFX(AudioManager.instance.sfx_winSmall);
+        // ---------------------------------------------------------
+        // TÍNH TOÁN KẾT QUẢ THẮNG THUA
+        // ---------------------------------------------------------
+        const currentMatrix = this.reelGroup.getResult();
+        const winResult = SlotRuleManager.checkWin(currentMatrix, 100); // Test cược $100
+
+        if (winResult.totalWin > 0) {
+            if (AudioManager.instance) {
+                AudioManager.instance.playSFX(AudioManager.instance.sfx_winBig);
+            }
+            console.log(`🎉 WIN! TOTAL: $${winResult.totalWin}`);
+            console.table(winResult.winningLines); // In bảng chi tiết các dòng thắng
+
+            // TODO: Hiển thị hiệu ứng thắng (Vẽ line, nổ tiền...)
+            // if (AudioManager.instance) AudioManager.instance.playSFX(AudioManager.instance.sfx_winSmall);
+        } else {
+            console.log('😢 NO WIN.');
+        }
+
 
         // Sau 1s quay về IDLE để cho spin tiếp
         this.scheduleOnce(() => {
             this.setState(SlotState.IDLE);
-
-            const result = this.reelGroup.getResult();
-            console.log('👑 Pharaoh Result (at IDLE):', result);
         }, 1);
     }
 

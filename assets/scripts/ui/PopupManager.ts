@@ -1,4 +1,4 @@
-import { _decorator, Component, Node, Prefab, instantiate, director, tween, Vec3, Camera, Canvas, Director } from 'cc';
+import { _decorator, Component, Node, Prefab, instantiate, director, tween, Vec3, Camera, Canvas, Director, Widget } from 'cc';
 const { ccclass, property } = _decorator;
 import { PopupBase } from "./PopupBase";
 
@@ -16,12 +16,26 @@ export class PopupManager extends Component {
             console.log('✅ popupContainer assigned:', this.popupContainer ? this.popupContainer.name : 'NULL');
             director.addPersistRootNode(this.node);
 
+            // Fix Widget targets to prevent crash when switching scenes
+            this.fixWidgetTarget(this.popupContainer);
+            this.fixWidgetTarget(this.scrimNode);
+
             // Listen for scene changes to update Camera
             director.on(Director.EVENT_BEFORE_SCENE_LOADING, this.onBeforeSceneLoading, this);
             director.on(Director.EVENT_AFTER_SCENE_LAUNCH, this.onSceneLaunched, this);
         } else {
             console.log('⚠️ PopupManager instance already exists, destroying duplicate');
             this.destroy();
+        }
+    }
+
+    private fixWidgetTarget(node: Node) {
+        if (!node) return;
+        const widget = node.getComponent(Widget);
+        if (widget) {
+            console.log(`🔧 Fixing Widget target for ${node.name} -> PopupManager`);
+            widget.target = this.node;
+            widget.updateAlignment();
         }
     }
 

@@ -49,6 +49,8 @@ export class AudioManager extends Component {
 
     @property({ type: AudioClip, tooltip: 'Tiếng thắng lớn' })
     sfx_winBig: AudioClip = null!;;
+    storeMusicVolume: number = 1.0;
+    storeSFXVolume: number = 1.0;
 
     onLoad() {
         // Singleton pattern - chỉ tạo 1 instance duy nhất
@@ -63,6 +65,7 @@ export class AudioManager extends Component {
             if (savedMusic) {
                 const vol = parseFloat(savedMusic);
                 this.bgmSource.volume = vol;
+                this.storeMusicVolume = vol;
             }
 
             const savedSFX = sys.localStorage.getItem('sfx');
@@ -104,7 +107,7 @@ export class AudioManager extends Component {
                 this.bgmSource.loop = true;
                 this.bgmSource.play();
             })
-            .to(fadeTime / 2, { volume: 0.5 }) // Fade in
+            .to(fadeTime / 2, { volume: this.storeMusicVolume }) // Fade in
             .start();
     }
 

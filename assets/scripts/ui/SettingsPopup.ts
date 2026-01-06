@@ -16,15 +16,12 @@ export class SettingsPopup extends PopupBase {
     start() {
         console.log('⚙️ SettingsPopup started');
         // Init volume slider from AudioManager or LocalStorage
-        if (AudioManager.instance) {
+        const savedMusic = sys.localStorage.getItem('music');
+        if (savedMusic) {
+            this.musicSlider.progress = parseFloat(savedMusic);
+        } else if (AudioManager.instance) {
             console.log('✅ Found AudioManager instance in SettingsPopup');
             this.musicSlider.progress = AudioManager.instance.bgmSource.volume;
-        } else {
-            console.warn('⚠️ AudioManager.instance NOT found in SettingsPopup start!');
-            const savedMusic = sys.localStorage.getItem('music');
-            if (savedMusic) {
-                this.musicSlider.progress = parseFloat(savedMusic);
-            }
         }
 
         this.saveButton.node.on(Button.EventType.CLICK, () => {
