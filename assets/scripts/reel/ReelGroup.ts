@@ -48,11 +48,6 @@ export class ReelGroup extends Component {
         });
     }
 
-    public stopReelsSequentially() {
-        this.currentReelIndex = 0;
-        this.stopNextReel();
-    }
-
     /**
      * Dừng reels tuần tự với kết quả mục tiêu từ Result Matrix
      * @param targetResults - Mảng symbol IDs mục tiêu, vd: [1, 3, 4]
@@ -67,25 +62,54 @@ export class ReelGroup extends Component {
             }
         });
 
-        // Bắt đầu dừng tuần tự
+        // Bắt đầu dừng tuần tự từ reel đầu tiên
         this.stopReelsSequentially();
     }
 
+    public stopReelsSequentially() {
+        this.currentReelIndex = 0;
+        this.triggerStopForCurrentReel();
+    }
 
-    private stopNextReel() {
+    private triggerStopForCurrentReel() {
         if (this.currentReelIndex >= this.reels.length) {
-            // TODO: Trigger check win logic
+            // Đã dừng hết tất cả reels -> CHECK WIN
+            console.log('🏁 All reels stopped. Checking for win...');
+            // TODO: Trigger check win logic here
             return;
         }
 
-        const reel = this.reels[this.currentReelIndex];
-        reel.stopSpin();
+        const reelIndex = this.currentReelIndex;
+        const reel = this.reels[reelIndex];
 
-        // Schedule dừng reel tiếp theo
-        this.scheduleOnce(() => {
+        // Setup callback: Khi reel này dừng xong -> gọi reel tiếp theo
+        // Lưu ý: Chúng ta override onStop của reel này để chain sang reel kế tiếp.
+        // "Stop xong" nghĩa là đã snap vào grid và animation hoàn tất.
+        reel.onStop = () => {
+            // console.log(`🛑 Reel ${reelIndex} stopped completely.`);
+
+            // Gọi callback chung (nếu có) để Controller bên ngoài biết
+            if (this.onReelStop) {
+                this.onReelStop(reelIndex);
+            }
+
+            // Kích hoạt việc dừng reel TIẾP THEO
             this.currentReelIndex++;
-            this.stopNextReel();
-        }, this.stopDelay);
+
+            // Có thể thêm 1 chút delay nhỏ xíu ở đây nếu muốn hiệu ứng "pặc... pặc... pặc"
+            // thay vì dừng quá liền mạch, nhưng logic cốt lõi vẫn là "chờ 1 xong mới triggers 2"
+            if (this.stopDelay > 0) {
+                this.scheduleOnce(() => {
+                    this.triggerStopForCurrentReel();
+                }, this.stopDelay);
+            } else {
+                this.triggerStopForCurrentReel();
+            }
+        };
+
+        // Bắt đầu quy trình dừng cho reel này
+        // (Nó sẽ tìm target symbol, phanh, và snap)
+        reel.stopSpin();
     }
 
     /**

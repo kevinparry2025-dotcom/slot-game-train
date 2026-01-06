@@ -284,7 +284,9 @@ export class Reel extends Component {
       // FIX MỚI: Vẫn cho phép recycle khi isStopping, MIỄN LÀ readyToBrake chưa kích hoạt!
       // (Thực tế logic recycle độc lập với braking state, nó chỉ dựa vào vị trí)
 
-      const thresholdY = -this.symbolHeight - 15; // ~ -135
+      // [CRITICAL FIX] Ngưỡng cũ (-135) quá cao, khiến symbol bị recycle khi vẫn còn nhìn thấy 1 phần (Y=-120 to -180).
+      // Hạ thấp xuống -300 để đảm bảo an toàn tuyệt đối.
+      const thresholdY = -this.symbolHeight * 2.5; // ~ -300
 
       if (pos.y < thresholdY) {
         // Chỉ recycle nếu đang quay nhanh hoặc target chưa bị trôi qua quá xa

@@ -48,10 +48,18 @@ export class PharaohSlotMachine extends Component {
         this.reelGroup.init(PharaohReelConfig);
 
         // Lắng nghe sự kiện Reel Stop từ ReelGroup (Real-time timing)
+        // Lắng nghe sự kiện Reel Stop từ ReelGroup (Real-time timing)
         this.reelGroup.onReelStop = (reelIndex: number) => {
             // 🔊 Sound: Reel Stop (Chính xác thời điểm reel dừng)
             if (AudioManager.instance) {
                 AudioManager.instance.playSFX(AudioManager.instance.sfx_reelStop);
+            }
+
+            // Nếu là reel cuối cùng dừng -> trigger showResult
+            // (Không dùng timer cố định nữa)
+            if (reelIndex >= this.reelGroup.reels.length - 1) {
+                console.log('✅ Last reel stopped. Transitioning to RESULT...');
+                this.showResult();
             }
         };
 
@@ -140,11 +148,6 @@ export class PharaohSlotMachine extends Component {
 
         // RESULT MATRIX: Truyền kết quả mục tiêu cho reels
         this.reelGroup.stopWithResult(this.targetResult);
-
-        // Dừng hết 3 reels mất: 0.3s * 3 + 0.5s (animation) ≈ 1.5s
-        this.scheduleOnce(() => {
-            this.showResult();
-        }, 1.5);
     }
 
     /**
