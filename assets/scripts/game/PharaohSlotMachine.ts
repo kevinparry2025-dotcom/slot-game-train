@@ -1,4 +1,4 @@
-import { _decorator, Component, Node, Button, find, director } from 'cc';
+import { _decorator, Component, Node, Button, find, director, SpriteFrame, CCInteger, Sprite, UIOpacity, tween, Vec3 } from 'cc';
 import { ReelGroup } from '../reel/ReelGroup';
 import { PharaohReelConfig } from '../reel/ReelConfig';
 import { AudioManager } from '../core/AudioManager';
@@ -26,6 +26,18 @@ export class PharaohSlotMachine extends Component {
 
     @property(ReelGroup)
     reelGroup: ReelGroup = null!;
+
+    @property(Node)
+    youWinNode: Node = null;
+
+    @property(SpriteFrame)
+    youWinSprite: SpriteFrame = null;
+
+    @property([SpriteFrame])
+    digitSprites: SpriteFrame[] = [];
+
+    @property(CCInteger)
+    winDisplayDuration: number = 2;
 
     private currentState: SlotState = SlotState.IDLE;
     private targetResult: number[] = []; // Kết quả mục tiêu từ Result Matrix
@@ -175,6 +187,7 @@ export class PharaohSlotMachine extends Component {
                 AudioManager.instance.playSFX(AudioManager.instance.sfx_winBig);
             }
             console.log(`🎉 WIN! TOTAL: $${winResult.totalWin}`);
+            this.showWinAmount(winResult.totalWin);
             console.table(winResult.winningLines); // In bảng chi tiết các dòng thắng
 
             // TODO: Hiển thị hiệu ứng thắng (Vẽ line, nổ tiền...)
@@ -188,6 +201,63 @@ export class PharaohSlotMachine extends Component {
         this.scheduleOnce(() => {
             this.setState(SlotState.IDLE);
         }, 1);
+    }
+
+    showWinAmount(totalWin: number = 200) {
+        if (!this.youWinNode) return;
+
+        const amountNode = this.youWinNode.getChildByName("Amount");
+        if (!amountNode) {
+            console.error('❌ Amount node not found in YouWinNode! check the name "Amount" vs "amount"');
+            return;
+        }
+
+        const digits = totalWin.toString().split('');
+
+        // Ensure enough digit nodes
+        while (amountNode.children.length < digits.length) {
+            const digitNode = new Node();
+            const sprite = digitNode.addComponent(Sprite);
+            amountNode.addChild(digitNode);
+        }
+
+        for (let i = 0; i < amountNode.children.length; i++) {
+            const digitNode = amountNode.children[i];
+            const sprite = digitNode.getComponent(Sprite);
+
+            if (i < digits.length) {
+                const digit = parseInt(digits[i]);
+                sprite.spriteFrame = this.digitSprites[digit];
+                digitNode.active = true;
+            } else {
+                digitNode.active = false;
+            }
+        }
+
+        // Ensure UIOpacity component exists
+        let opacityComp = this.youWinNode.getComponent(UIOpacity);
+        if (!opacityComp) {
+            opacityComp = this.youWinNode.addComponent(UIOpacity);
+        }
+
+        // Set initial styles
+        this.youWinNode.active = true;
+        this.youWinNode.setScale(new Vec3(0.5, 0.5, 1)); // pop from small
+        opacityComp.opacity = 0;
+
+        // Pop-in + fade-in animation
+        tween(this.youWinNode)
+            .to(0.3, { scale: new Vec3(1, 1, 1) }, { easing: 'backOut' })
+            .start();
+
+        tween(opacityComp)
+            .to(0.3, { opacity: 255 })
+            .delay(this.winDisplayDuration)
+            .to(0.3, { opacity: 0 })
+            .call(() => {
+                this.youWinNode.active = false;
+            })
+            .start();
     }
 
     /**
