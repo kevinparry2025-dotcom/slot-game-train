@@ -58,6 +58,24 @@ export class PharaohSlotMachine extends Component {
                 AudioManager.instance.fadeBGM(AudioManager.instance.bgm_pharaoh, 1.5);
             }
         }
+
+        // Register Touch Event for Spin Button
+        if (this.btnSpin) {
+            console.log('🔍 Checking btnSpin type:', this.btnSpin.constructor.name);
+            // Handle case where btnSpin might be a Component (due to editor quirks) instead of a Node
+            let btnNode = this.btnSpin;
+            if (!(this.btnSpin instanceof Node) && (this.btnSpin as any).node) {
+                btnNode = (this.btnSpin as any).node;
+                console.warn('⚠️ btnSpin is not a Node! Using .node property instead.');
+            }
+
+            if (btnNode && typeof btnNode.on === 'function') {
+                btnNode.on(Node.EventType.TOUCH_END, this.onSpinButtonClicked, this);
+            } else {
+                console.error('❌ Cannot register touch event: btnNode is invalid or missing .on method', btnNode);
+            }
+        }
+
         this.setState(SlotState.IDLE);
         this.init();
     }
@@ -81,9 +99,9 @@ export class PharaohSlotMachine extends Component {
             }
         };
 
-        // Đảm bảo nút spin được bật
-        this.btnSpin.active = true;
-        this.btnSpinDisable.active = false;
+        // Đảm bảo nút spin được bật (User requested removal of active toggling)
+        // this.btnSpin.active = true;
+        // this.btnSpinDisable.active = false;
     }
 
     /**
@@ -101,8 +119,9 @@ export class PharaohSlotMachine extends Component {
         }
 
         // Disable nút spin (chuyển sang màu mờ/không ấn được)
-        this.btnSpin.active = false;
-        this.btnSpinDisable.active = true;
+        // User requested removal of active toggling
+        // this.btnSpin.active = false;
+        // this.btnSpinDisable.active = true;
 
         this.startSpin();
     }
@@ -178,8 +197,9 @@ export class PharaohSlotMachine extends Component {
         }
 
         this.setState(SlotState.RESULT);
-        this.btnSpin.active = true;
-        this.btnSpinDisable.active = false;
+        // User requested removal of active toggling
+        // this.btnSpin.active = true;
+        // this.btnSpinDisable.active = false;
 
         // ---------------------------------------------------------
         // TÍNH TOÁN KẾT QUẢ THẮNG THUA
@@ -299,6 +319,18 @@ export class PharaohSlotMachine extends Component {
      * Xử lý khi user click nút Back
      * Load trực tiếp về LobbyScene
      */
+    onDestroy() {
+        if (this.btnSpin) {
+            let btnNode = this.btnSpin;
+            if (!(this.btnSpin instanceof Node) && (this.btnSpin as any).node) {
+                btnNode = (this.btnSpin as any).node;
+            }
+            if (btnNode && typeof btnNode.off === 'function') {
+                btnNode.off(Node.EventType.TOUCH_END, this.onSpinButtonClicked, this);
+            }
+        }
+    }
+
     public backToLobby() {
         console.log('🔙 Going back to lobby...');
 
