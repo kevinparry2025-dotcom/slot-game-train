@@ -42,6 +42,11 @@ export class PharaohSlotMachine extends Component {
     private currentState: SlotState = SlotState.IDLE;
     private targetResult: number[] = []; // Kết quả mục tiêu từ Result Matrix
 
+    // Win Streak Logic
+    private consecutiveWins: number = 0;
+    private consecutiveLosses: number = 0;
+    private isIntenseMode: boolean = false;
+
     start() {
         // Nếu không có AudioManager (test trực tiếp GameScene)
         if (!AudioManager.instance) {
@@ -183,16 +188,46 @@ export class PharaohSlotMachine extends Component {
         const winResult = SlotRuleManager.checkWin(currentMatrix, 100); // Test cược $100
 
         if (winResult.totalWin > 0) {
+            // --- WIN LOGIC ---
+            this.consecutiveWins++;
+            this.consecutiveLosses = 0; // Reset losses
+
             if (AudioManager.instance) {
                 AudioManager.instance.playSFX(AudioManager.instance.sfx_winBig);
             }
-            console.log(`🎉 WIN! TOTAL: $${winResult.totalWin}`);
+            console.log(`🎉 WIN! TOTAL: $${winResult.totalWin} | Streak: ${this.consecutiveWins}`);
             this.showWinAmount(winResult.totalWin);
-            console.table(winResult.winningLines); // In bảng chi tiết các dòng thắng
+            console.table(winResult.winningLines);
 
-            // TODO: Hiển thị hiệu ứng thắng (Vẽ line, nổ tiền...)
-            // if (AudioManager.instance) AudioManager.instance.playSFX(AudioManager.instance.sfx_winSmall);
+            // Check if we should switch to INTENSE music
+            // Trigger: 2 wins in a row
+            if (this.consecutiveWins >= 2 && !this.isIntenseMode) {
+                console.log('🔥 WIN STREAK! Switch to Intense Music!');
+                this.isIntenseMode = true;
+                if (AudioManager.instance && AudioManager.instance.bgm_pharaoh_intense) {
+                    AudioManager.instance.fadeBGM(AudioManager.instance.bgm_pharaoh_intense, 1.0);
+                }
+            }
+
         } else {
+            // --- LOSE LOGIC ---
+            this.consecutiveWins = 0; // Reset wins
+
+            if (this.isIntenseMode) {
+                this.consecutiveLosses++;
+                console.log(`❄️ LOSS count: ${this.consecutiveLosses}/3 to calm down.`);
+
+                // Calm down: 3 losses in a row
+                if (this.consecutiveLosses >= 3) {
+                    console.log('🧊 CALM DOWN. Switch back to Normal Music.');
+                    this.isIntenseMode = false;
+                    this.consecutiveLosses = 0;
+                    if (AudioManager.instance && AudioManager.instance.bgm_pharaoh) {
+                        AudioManager.instance.fadeBGM(AudioManager.instance.bgm_pharaoh, 1.0);
+                    }
+                }
+            }
+
             console.log('😢 NO WIN.');
         }
 

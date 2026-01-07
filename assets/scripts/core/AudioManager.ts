@@ -29,6 +29,9 @@ export class AudioManager extends Component {
     @property({ type: AudioClip, tooltip: 'Nhạc nền Game Pharaoh' })
     bgm_pharaoh: AudioClip = null!;
 
+    @property({ type: AudioClip, tooltip: 'Nhạc nền Game Pharaoh khi quay (Xung)' })
+    bgm_pharaoh_intense: AudioClip = null!;
+
     // ═══════════════════════════════════════════════════════════
     // SFX (Sound Effects) - Dùng Chung Cho Tất Cả Games
     // ═══════════════════════════════════════════════════════════
