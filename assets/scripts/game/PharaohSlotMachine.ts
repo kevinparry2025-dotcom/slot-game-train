@@ -49,6 +49,12 @@ export class PharaohSlotMachine extends Component {
     @property(Label)
     lblWin: Label = null!;
 
+    @property(Button)
+    btnBetPlus: Button = null!;
+
+    @property(Button)
+    btnBetMinus: Button = null!;
+
     private betLevels: number[] = [100, 200, 500, 1000, 2000, 5000];
     private currentBetIndex: number = 0;
 
@@ -87,6 +93,14 @@ export class PharaohSlotMachine extends Component {
             } else {
                 console.error('❌ Cannot register touch event: btnNode is invalid or missing .on method', btnNode);
             }
+        }
+
+        if (this.btnBetPlus) {
+            this.btnBetPlus.node.on(Button.EventType.CLICK, this.increaseBet, this);
+        }
+
+        if (this.btnBetMinus) {
+            this.btnBetMinus.node.on(Button.EventType.CLICK, this.decreaseBet, this);
         }
 
         this.setState(SlotState.IDLE);
@@ -409,7 +423,7 @@ export class PharaohSlotMachine extends Component {
         if (this.currentBetIndex < this.betLevels.length - 1) {
             this.currentBetIndex++;
             this.updateBetUI();
-            if (AudioManager.instance) AudioManager.instance.playSFX(AudioManager.instance.sfx_click);
+            if (AudioManager.instance) AudioManager.instance.playSFX(AudioManager.instance.sfx_coin);
         }
     }
 
@@ -417,7 +431,7 @@ export class PharaohSlotMachine extends Component {
         if (this.currentBetIndex > 0) {
             this.currentBetIndex--;
             this.updateBetUI();
-            if (AudioManager.instance) AudioManager.instance.playSFX(AudioManager.instance.sfx_click);
+            if (AudioManager.instance) AudioManager.instance.playSFX(AudioManager.instance.sfx_coin);
         }
     }
 
