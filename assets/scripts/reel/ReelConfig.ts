@@ -40,7 +40,7 @@ export const PharaohReelConfig: ReelConfig = {
     visibleSymbolCount: 3,
     totalSymbolCount: 10,
     symbolHeight: 95,
-    targetSpeed: 1000,
+    targetSpeed: 2000,
     accelerationRate: 1000,
     decelerationRate: 4000,
     stopDelay: 0.3,

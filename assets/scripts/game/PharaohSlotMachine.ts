@@ -5,6 +5,7 @@ import { AudioManager } from '../core/AudioManager';
 import { GameSceneManager } from '../scenes/GameSceneManager';
 import { SlotRuleManager } from './SlotRuleManager';
 import { GameManager } from '../core/GameManager';
+import { WinLineManager } from './WinLineManager';
 const { ccclass, property } = _decorator;
 
 enum SlotState {
@@ -18,6 +19,8 @@ enum SlotState {
 
 @ccclass('PharaohSlotMachine')
 export class PharaohSlotMachine extends Component {
+    @property(WinLineManager)
+    winLineManager: WinLineManager = null!; // Quản lý hiệu ứng Line Thắng
     @property(Node)
     btnSpin: Node = null!; // Nút spin bình thường
 
@@ -178,6 +181,11 @@ export class PharaohSlotMachine extends Component {
             AudioManager.instance.playSpinLoop();
         }
 
+        // Reset Line win visuals
+        if (this.winLineManager) {
+            this.winLineManager.reset();
+        }
+
         // RESULT MATRIX: Generate kết quả NGAY TỪ ĐẦU (Frontend)
         this.targetResult = this.generateRandomResult();
         console.log('🎯 Pharaoh Result Matrix generated:', this.targetResult);
@@ -263,6 +271,11 @@ export class PharaohSlotMachine extends Component {
             this.showWinAmount(winResult.totalWin);
             console.table(winResult.winningLines);
 
+            // Show Winning Lines
+            if (this.winLineManager) {
+                this.winLineManager.showWinningLines(winResult.winningLines);
+            }
+
             // Check if we should switch to INTENSE music
             // Trigger: 2 wins in a row
             if (this.consecutiveWins >= 2 && !this.isIntenseMode) {
@@ -318,7 +331,71 @@ export class PharaohSlotMachine extends Component {
             return;
         }
 
-        const digits = totalWin.toString().split('');
+
+
+
+        // Ensure UIOpacity component exists
+        let opacityComp = this.youWinNode.getComponent(UIOpacity);
+        if (!opacityComp) {
+            opacityComp = this.youWinNode.addComponent(UIOpacity);
+        }
+
+        // Set initial styles
+        this.youWinNode.active = true;
+        this.youWinNode.setScale(new Vec3(0.5, 0.5, 1)); // pop from small
+        opacityComp.opacity = 0;
+
+        // Pop-in animation
+        tween(this.youWinNode)
+            .to(0.3, { scale: new Vec3(1, 1, 1) }, { easing: 'backOut' })
+            .start();
+
+        // Fade in
+        tween(opacityComp)
+            .to(0.2, { opacity: 255 })
+            .start();
+
+        // --- WIN ROLLUP ANIMATION ---
+        // 1. Start from 0
+        const startValue = 0;
+        const duration = Math.min(2.0, totalWin / 100 * 0.1 + 0.5); // Dynamic duration based on amount, max 2s
+
+        let obj = { value: startValue };
+
+        // 2. Tween to totalWin
+        tween(obj)
+            .to(duration, { value: totalWin }, {
+                easing: 'quadOut',
+                onUpdate: (target: { value: number }) => {
+                    const currentVal = Math.floor(target.value);
+                    this.updateWinDigits(amountNode, currentVal);
+
+                    // Optional: Play tick sound every X frames or based on change?
+                    // For now, simple probability check to avoid spamming audio every frame
+                    if (Math.random() < 0.3) {
+                        if (AudioManager.instance) AudioManager.instance.playSFX(AudioManager.instance.sfx_coin, 0.5);
+                    }
+                }
+            })
+            .call(() => {
+                // Ensure final value is set correctly
+                this.updateWinDigits(amountNode, totalWin);
+
+                // 3. Hide after delay (calculated from end of rollup)
+                this.scheduleOnce(() => {
+                    tween(opacityComp)
+                        .to(0.3, { opacity: 0 })
+                        .call(() => {
+                            this.youWinNode.active = false;
+                        })
+                        .start();
+                }, this.winDisplayDuration);
+            })
+            .start();
+    }
+
+    private updateWinDigits(amountNode: Node, value: number) {
+        const digits = value.toString().split('');
 
         // Ensure enough digit nodes
         while (amountNode.children.length < digits.length) {
@@ -333,38 +410,75 @@ export class PharaohSlotMachine extends Component {
 
             if (i < digits.length) {
                 const digit = parseInt(digits[i]);
-                sprite.spriteFrame = this.digitSprites[digit];
+                if (frames && this.digitSprites[digit]) {
+                    sprite.spriteFrame = this.digitSprites[digit];
+                }
                 digitNode.active = true;
             } else {
                 digitNode.active = false;
             }
         }
-
-        // Ensure UIOpacity component exists
-        let opacityComp = this.youWinNode.getComponent(UIOpacity);
-        if (!opacityComp) {
-            opacityComp = this.youWinNode.addComponent(UIOpacity);
-        }
-
-        // Set initial styles
-        this.youWinNode.active = true;
-        this.youWinNode.setScale(new Vec3(0.5, 0.5, 1)); // pop from small
-        opacityComp.opacity = 0;
-
-        // Pop-in + fade-in animation
-        tween(this.youWinNode)
-            .to(0.3, { scale: new Vec3(1, 1, 1) }, { easing: 'backOut' })
-            .start();
-
-        tween(opacityComp)
-            .to(0.3, { opacity: 255 })
-            .delay(this.winDisplayDuration)
-            .to(0.3, { opacity: 0 })
-            .call(() => {
-                this.youWinNode.active = false;
-            })
-            .start();
     }
+
+
+
+
+    //  showWinAmount(totalWin: number = 200) {
+    //     if (!this.youWinNode) return;
+
+    //     const amountNode = this.youWinNode.getChildByName("Amount");
+    //     if (!amountNode) {
+    //         console.error('❌ Amount node not found in YouWinNode! check the name "Amount" vs "amount"');
+    //         return;
+    //     }
+
+    //     const digits = totalWin.toString().split('');
+
+    //     // Ensure enough digit nodes
+    //     while (amountNode.children.length < digits.length) {
+    //         const digitNode = new Node();
+    //         const sprite = digitNode.addComponent(Sprite);
+    //         amountNode.addChild(digitNode);
+    //     }
+
+    //     for (let i = 0; i < amountNode.children.length; i++) {
+    //         const digitNode = amountNode.children[i];
+    //         const sprite = digitNode.getComponent(Sprite);
+
+    //         if (i < digits.length) {
+    //             const digit = parseInt(digits[i]);
+    //             sprite.spriteFrame = this.digitSprites[digit];
+    //             digitNode.active = true;
+    //         } else {
+    //             digitNode.active = false;
+    //         }
+    //     }
+
+    //     // Ensure UIOpacity component exists
+    //     let opacityComp = this.youWinNode.getComponent(UIOpacity);
+    //     if (!opacityComp) {
+    //         opacityComp = this.youWinNode.addComponent(UIOpacity);
+    //     }
+
+    //     // Set initial styles
+    //     this.youWinNode.active = true;
+    //     this.youWinNode.setScale(new Vec3(0.5, 0.5, 1)); // pop from small
+    //     opacityComp.opacity = 0;
+
+    //     // Pop-in + fade-in animation
+    //     tween(this.youWinNode)
+    //         .to(0.3, { scale: new Vec3(1, 1, 1) }, { easing: 'backOut' })
+    //         .start();
+
+    //     tween(opacityComp)
+    //         .to(0.3, { opacity: 255 })
+    //         .delay(this.winDisplayDuration)
+    //         .to(0.3, { opacity: 0 })
+    //         .call(() => {
+    //             this.youWinNode.active = false;
+    //         })
+    //         .start();
+    // }
 
     /**
      * Xử lý khi user click nút Back
