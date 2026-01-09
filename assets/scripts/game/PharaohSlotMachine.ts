@@ -1,9 +1,10 @@
-import { _decorator, Component, Node, Button, find, director, SpriteFrame, CCInteger, Sprite, UIOpacity, tween, Vec3 } from 'cc';
+import { _decorator, Component, Node, Button, find, director, SpriteFrame, CCInteger, Sprite, UIOpacity, tween, Vec3, Label } from 'cc';
 import { ReelGroup } from '../reel/ReelGroup';
 import { PharaohReelConfig } from '../reel/ReelConfig';
 import { AudioManager } from '../core/AudioManager';
 import { GameSceneManager } from '../scenes/GameSceneManager';
 import { SlotRuleManager } from './SlotRuleManager';
+import { GameManager } from '../core/GameManager';
 const { ccclass, property } = _decorator;
 
 enum SlotState {
@@ -38,6 +39,18 @@ export class PharaohSlotMachine extends Component {
 
     @property(CCInteger)
     winDisplayDuration: number = 2;
+
+    @property(Label)
+    lblBalance: Label = null!;
+
+    @property(Label)
+    lblTotalBet: Label = null!;
+
+    @property(Label)
+    lblWin: Label = null!;
+
+    private betLevels: number[] = [100, 200, 500, 1000, 2000, 5000];
+    private currentBetIndex: number = 0;
 
     private currentState: SlotState = SlotState.IDLE;
     private targetResult: number[] = []; // Kết quả mục tiêu từ Result Matrix
@@ -77,6 +90,8 @@ export class PharaohSlotMachine extends Component {
         }
 
         this.setState(SlotState.IDLE);
+        this.updateBalanceUI();
+        this.updateBetUI();
         this.init();
     }
     init() {
@@ -122,6 +137,20 @@ export class PharaohSlotMachine extends Component {
         // User requested removal of active toggling
         // this.btnSpin.active = false;
         // this.btnSpinDisable.active = true;
+
+        // Check Balance
+        const currentBet = this.betLevels[this.currentBetIndex];
+        const currentBalance = GameManager.instance.getBalance();
+
+        if (currentBalance < currentBet) {
+            console.log('⚠️ Not enough money!');
+            // TODO: Show "Not enough money" popup or animation
+            return;
+        }
+
+        // Deduct Balance
+        GameManager.instance.setBalance(currentBalance - currentBet);
+        this.updateBalanceUI();
 
         this.startSpin();
     }
@@ -205,7 +234,8 @@ export class PharaohSlotMachine extends Component {
         // TÍNH TOÁN KẾT QUẢ THẮNG THUA
         // ---------------------------------------------------------
         const currentMatrix = this.reelGroup.getResult();
-        const winResult = SlotRuleManager.checkWin(currentMatrix, 100); // Test cược $100
+        const currentBet = this.betLevels[this.currentBetIndex];
+        const winResult = SlotRuleManager.checkWin(currentMatrix, currentBet);
 
         if (winResult.totalWin > 0) {
             // --- WIN LOGIC ---
@@ -229,6 +259,12 @@ export class PharaohSlotMachine extends Component {
                 }
             }
 
+            // Add Win to Balance
+            const currentBalance = GameManager.instance.getBalance();
+            GameManager.instance.setBalance(currentBalance + winResult.totalWin);
+            this.updateBalanceUI();
+            if (this.lblWin) this.lblWin.string = `WIN: $${winResult.totalWin}`;
+
         } else {
             // --- LOSE LOGIC ---
             this.consecutiveWins = 0; // Reset wins
@@ -249,6 +285,7 @@ export class PharaohSlotMachine extends Component {
             }
 
             console.log('😢 NO WIN.');
+            if (this.lblWin) this.lblWin.string = `WIN: 0`;
         }
 
 
@@ -366,6 +403,87 @@ export class PharaohSlotMachine extends Component {
             manager.backToLobby();
         } else {
             console.error('❌ GameSceneManager component not found in Canvas children!');
+        }
+    }
+    public increaseBet() {
+        if (this.currentBetIndex < this.betLevels.length - 1) {
+            this.currentBetIndex++;
+            this.updateBetUI();
+            if (AudioManager.instance) AudioManager.instance.playSFX(AudioManager.instance.sfx_click);
+        }
+    }
+
+    public decreaseBet() {
+        if (this.currentBetIndex > 0) {
+            this.currentBetIndex--;
+            this.updateBetUI();
+            if (AudioManager.instance) AudioManager.instance.playSFX(AudioManager.instance.sfx_click);
+        }
+    }
+
+    private balanceTween: any = null;
+    private currentDisplayedBalance: number = 0;
+
+    private updateBalanceUI(animate: boolean = true) {
+        if (!this.lblBalance) return;
+
+        const targetBalance = GameManager.instance.getBalance();
+
+        // Initial setup if not set
+        if (this.currentDisplayedBalance === 0 && targetBalance > 0 && Math.abs(this.currentDisplayedBalance - targetBalance) > 1000) {
+            this.currentDisplayedBalance = targetBalance;
+            this.lblBalance.string = `$${Math.floor(this.currentDisplayedBalance)}`;
+            return;
+        }
+
+        if (!animate) {
+            if (this.balanceTween) {
+                this.balanceTween.stop();
+                this.balanceTween = null;
+            }
+            this.currentDisplayedBalance = targetBalance;
+            this.lblBalance.string = `$${Math.floor(this.currentDisplayedBalance)}`;
+            return;
+        }
+
+        // Stop existing tween
+        if (this.balanceTween) {
+            this.balanceTween.stop();
+        }
+
+        const duration = 0.5; // 0.5s for animation
+        const obj = { value: this.currentDisplayedBalance };
+
+        // Scale Effect if winning (increasing money)
+        if (targetBalance > this.currentDisplayedBalance) {
+            tween(this.lblBalance.node)
+                .to(0.15, { scale: new Vec3(1.3, 1.3, 1) }, { easing: 'sineOut' }) // Pop up
+                .delay(0.3)
+                .to(0.25, { scale: new Vec3(1, 1, 1) }, { easing: 'sineIn' })     // Back to normal
+                .start();
+        }
+
+        this.balanceTween = tween(obj)
+            .to(duration, { value: targetBalance }, {
+                easing: 'quadOut',
+                onUpdate: (target: { value: number }) => {
+                    this.currentDisplayedBalance = target.value;
+                    if (this.lblBalance) {
+                        this.lblBalance.string = `$${Math.floor(this.currentDisplayedBalance)}`;
+                    }
+                }
+            })
+            .call(() => {
+                this.balanceTween = null;
+                this.currentDisplayedBalance = targetBalance; // Ensure precision at end
+                if (this.lblBalance) this.lblBalance.string = `$${targetBalance}`;
+            })
+            .start();
+    }
+
+    private updateBetUI() {
+        if (this.lblTotalBet) {
+            this.lblTotalBet.string = `$${this.betLevels[this.currentBetIndex]}`;
         }
     }
 }
