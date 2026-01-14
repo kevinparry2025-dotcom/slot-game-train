@@ -65,8 +65,16 @@ export class Reel extends Component {
       const symbolNode = instantiate(this.symbolPrefab);
       symbolNode.setParent(this.node);
 
-      // Đặt vị trí: từ trên xuống
-      symbolNode.setPosition(0, (this.symbolCount - 2 - i) * this.symbolHeight + 5, 0);
+      // --- CLEAN CODE (Đã giải ngố) ---
+      // Tách công thức "củ chuối" ra thành các biến có tên đàng hoàng:
+
+      const OFFSET_ROW = 2;     // Dịch xuống 2 hàng để hàng số 2 nằm ngay tâm (Y=0)
+      const PADDING_Y = 5;      // Đẩy lên 5px để căn giữa khung hình (Visual Tweak)
+
+      const rowIndex = this.symbolCount - OFFSET_ROW - i;
+      const posY = rowIndex * this.symbolHeight;
+
+      symbolNode.setPosition(0, posY, 0);
 
       // Set hình ảnh random
       const randomId = Math.floor(Math.random() * this.symbolSpriteFrames.length);

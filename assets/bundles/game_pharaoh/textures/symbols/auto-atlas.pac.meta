@@ -2,14 +2,14 @@
   "ver": "1.0.8",
   "importer": "auto-atlas",
   "imported": true,
-  "uuid": "9541079f-9766-4e95-85a5-23d3f505a70b",
+  "uuid": "7c85b1ee-100f-4b92-91db-d300bb6027f7",
   "files": [
     ".json"
   ],
   "subMetas": {},
   "userData": {
-    "maxWidth": 2048,
-    "maxHeight": 2048,
+    "maxWidth": 512,
+    "maxHeight": 512,
     "padding": 2,
     "allowRotation": true,
     "forceSquared": false,
@@ -23,7 +23,27 @@
     "removeTextureInBundle": true,
     "removeImageInBundle": true,
     "removeSpriteAtlasInBundle": true,
-    "compressSettings": {},
+    "useCompress": true,
+    "compressSettings": {
+      "useCompress": true,
+      "web": {
+        "quality": 80,
+        "format": "jpg"
+      },
+      "iOS": {
+        "quality": 80,
+        "format": "astc_8x8"
+      },
+      "android": {
+        "quality": 80,
+        "format": "etc2_rgb"
+      },
+      "miniGame": {
+        "quality": 80,
+        "format": "jpg"
+      },
+      "useCompressTexture": true
+    },
     "textureSetting": {
       "wrapModeS": "repeat",
       "wrapModeT": "repeat",
